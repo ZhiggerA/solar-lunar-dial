@@ -1,0 +1,3493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glassmorphism Solar & Lunar Dial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        :root {
+            --glass-tint: 0.52;
+            --glass-blur: 48px;
+            --glass-border-alpha: 0.16;
+            --idle-opacity: 0.38;
+            --active-opacity: 1;
+            --widget-scale: 1;
+            --dial-size: 314px;
+            --accent-sky: #38bdf8;
+            --accent-gold: #fbbf24;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #020617;
+            overflow: hidden;
+            position: relative;
+            color: #f8fafc;
+            transition: background-color 0.5s ease, background-image 0.5s ease;
+        }
+
+        /* True Transparent Mode for Rainmeter / Electron / WebView2 Desktop Overlays */
+        body.bg-transparent-mode {
+            background: transparent !important;
+        }
+        body.bg-transparent-mode::before,
+        body.bg-transparent-mode::after,
+        body.bg-transparent-mode .desktop-grid-overlay {
+            display: none !important;
+        }
+
+        /* Windows 11 Bloom Wallpaper Simulation */
+        body.bg-bloom-mode {
+            background: radial-gradient(circle at 20% 25%, #1e3a8a 0%, transparent 45%),
+                        radial-gradient(circle at 80% 30%, #3b0764 0%, transparent 50%),
+                        radial-gradient(circle at 50% 80%, #0369a1 0%, transparent 55%),
+                        linear-gradient(135deg, #020617 0%, #0f172a 50%, #1e1b4b 100%);
+        }
+
+        /* Alpine Dusk Wallpaper Simulation */
+        body.bg-dusk-mode {
+            background: radial-gradient(circle at 50% 18%, rgba(251, 146, 60, 0.35) 0%, transparent 45%),
+                        radial-gradient(circle at 85% 75%, rgba(56, 189, 248, 0.25) 0%, transparent 50%),
+                        linear-gradient(180deg, #1e1b4b 0%, #311042 45%, #090d16 100%);
+        }
+
+        /* Subtle Desktop Grid Pattern to appreciate transparency */
+        .desktop-grid-overlay {
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+            background-size: 28px 28px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Animated Aurora / Nebula Background */
+        body::before, body::after {
+            content: '';
+            position: absolute;
+            width: 180vw;
+            height: 180vh;
+            top: -40%;
+            left: -40%;
+            z-index: -2;
+            filter: blur(110px);
+            opacity: 0.65;
+            animation: drift 28s infinite alternate ease-in-out;
+            pointer-events: none;
+        }
+
+        body::before {
+            background: radial-gradient(circle at 35% 55%, rgba(56, 189, 248, 0.24), transparent 42%),
+                        radial-gradient(circle at 65% 35%, rgba(139, 92, 246, 0.22), transparent 42%);
+        }
+        
+        body::after {
+            background: radial-gradient(circle at 30% 30%, rgba(244, 63, 94, 0.14), transparent 48%),
+                        radial-gradient(circle at 72% 70%, rgba(14, 165, 233, 0.16), transparent 48%);
+            animation-delay: -14s;
+            animation-direction: alternate-reverse;
+        }
+
+        @keyframes drift {
+            0% { transform: rotate(0deg) scale(1); }
+            100% { transform: rotate(12deg) scale(1.08); }
+        }
+
+        .widget-stage {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transform: scale(var(--widget-scale));
+            transform-origin: center center;
+            transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .widget-container {
+            background: linear-gradient(
+                160deg,
+                rgba(30, 41, 59, var(--glass-tint)) 0%,
+                rgba(2, 6, 23, calc(var(--glass-tint) + 0.16)) 100%
+            );
+            border-radius: 46px;
+            padding: 20px 22px 20px 22px;
+            position: relative;
+            width: 400px;
+            max-width: 96vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 11px;
+            
+            backdrop-filter: blur(var(--glass-blur)) saturate(190%);
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(190%);
+            border: 1px solid rgba(255, 255, 255, var(--glass-border-alpha));
+            border-top: 1px solid rgba(255, 255, 255, calc(var(--glass-border-alpha) * 2));
+            border-left: 1px solid rgba(255, 255, 255, calc(var(--glass-border-alpha) * 1.4));
+            box-shadow: 
+                0 35px 70px -15px rgba(0, 0, 0, 0.78), 
+                0 15px 35px -15px rgba(56, 189, 248, 0.16),
+                inset 0 1px 1px rgba(255, 255, 255, 0.25),
+                inset 0 -1px 2px rgba(0, 0, 0, 0.45);
+                
+            user-select: none;
+            -webkit-user-select: none;
+            opacity: var(--active-opacity);
+            transition: 
+                opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+                width 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+                padding 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+                border-radius 0.38s ease,
+                background 0.45s ease,
+                border-color 0.45s ease,
+                box-shadow 0.45s ease;
+        }
+
+        /* Hover-to-Wake / Idle-Fade State when mouse leaves the widget */
+        .widget-container.is-idle {
+            opacity: var(--idle-opacity);
+            box-shadow: 
+                0 18px 40px -15px rgba(0, 0, 0, 0.45),
+                inset 0 1px 1px rgba(255, 255, 255, 0.12);
+        }
+
+        /* Ghost Chrome Mode: Collapses secondary UI cards when mouse is off the widget */
+        .widget-container.ghost-chrome.is-idle {
+            background: linear-gradient(160deg, rgba(15, 23, 42, calc(var(--glass-tint) * 0.45)) 0%, rgba(2, 6, 23, calc(var(--glass-tint) * 0.55)) 100%);
+            border-color: rgba(255, 255, 255, 0.05);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .widget-container.ghost-chrome.is-idle .collapsible-on-idle {
+            max-height: 0 !important;
+            opacity: 0 !important;
+            margin-top: -6px !important;
+            margin-bottom: -6px !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            border-width: 0 !important;
+            pointer-events: none !important;
+            overflow: hidden !important;
+        }
+
+        /* Frameless Glass Mode */
+        .widget-container.frameless-mode {
+            background: transparent !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            border-color: transparent !important;
+            box-shadow: none !important;
+        }
+
+        /* Layout Preset: Horizontal Wide Deskbar */
+        .widget-container.layout-deskbar {
+            width: 670px;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            gap: 20px;
+            border-radius: 40px;
+        }
+        .widget-container.layout-deskbar .dial-column {
+            flex-shrink: 0;
+        }
+        .widget-container.layout-deskbar .info-column {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        /* Layout Preset: Compact Mode */
+        .widget-container.layout-compact {
+            width: 356px;
+            padding: 16px 18px;
+            gap: 8px;
+            border-radius: 42px;
+        }
+        .widget-container.layout-compact .telemetry-strip,
+        .widget-container.layout-compact .complications-row {
+            display: none !important;
+        }
+
+        /* Layout Preset: Mini Orb (Pure Circular Watch Face) */
+        .widget-container.layout-orb {
+            width: auto;
+            padding: 10px;
+            border-radius: 50%;
+            gap: 0;
+        }
+        .widget-container.layout-orb .info-column,
+        .widget-container.layout-orb .top-header-wrap {
+            display: none !important;
+        }
+        .widget-container.layout-orb .orb-hover-pill {
+            display: flex !important;
+        }
+
+        /* Default Layout Wrappers */
+        .top-header-wrap,
+        .info-column {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .dial-column {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .collapsible-section {
+            transition: max-height 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+                        opacity 0.35s ease,
+                        margin 0.35s ease,
+                        padding 0.35s ease,
+                        transform 0.35s ease;
+            max-height: 140px;
+            opacity: 1;
+        }
+
+        .section-hidden {
+            display: none !important;
+        }
+
+        .widget-hover-chrome {
+            position: absolute;
+            top: 12px;
+            left: 18px;
+            right: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 30;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+        .widget-container:hover .widget-hover-chrome,
+        .widget-container.settings-open .widget-hover-chrome {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .widget-drag-handle {
+            width: 44px;
+            height: 5px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.25);
+            cursor: move;
+            margin: 0 auto;
+            transition: background 0.2s, width 0.2s;
+        }
+        .widget-drag-handle:hover {
+            background: rgba(56, 189, 248, 0.75);
+            width: 60px;
+        }
+
+        .chrome-icon-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.72);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(12px);
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        .chrome-icon-btn:hover,
+        .chrome-icon-btn.active {
+            color: #38bdf8;
+            border-color: rgba(56, 189, 248, 0.55);
+            background: rgba(15, 23, 42, 0.92);
+            transform: scale(1.08);
+        }
+
+        /* Corner Resize Grip */
+        .resize-grip {
+            position: absolute;
+            bottom: 10px;
+            right: 12px;
+            width: 22px;
+            height: 22px;
+            cursor: nwse-resize;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.35);
+            opacity: 0;
+            transition: opacity 0.25s ease, color 0.2s ease, transform 0.2s ease;
+            z-index: 35;
+        }
+        .widget-container:hover .resize-grip {
+            opacity: 1;
+        }
+        .resize-grip:hover {
+            color: #38bdf8;
+            transform: scale(1.15);
+        }
+
+        /* Floating Mini-HUD inside Orb Mode on Hover */
+        .orb-hover-pill {
+            display: none;
+            position: absolute;
+            bottom: 18px;
+            background: rgba(2, 6, 23, 0.78);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            backdrop-filter: blur(14px);
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            color: #f8fafc;
+            gap: 8px;
+            align-items: center;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: all 0.25s ease;
+            pointer-events: none;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+        }
+        .widget-container.layout-orb:hover .orb-hover-pill {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .celestial-header-pill {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-top-color: rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            padding: 8px 34px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08), 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+
+        #solar-phase {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: #ffffff;
+            text-align: center;
+            line-height: 1.3;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.7);
+            transition: color 0.3s ease;
+        }
+
+        #lunar-phase {
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 1.1px;
+            text-transform: uppercase;
+            color: #94a3b8;
+            text-align: center;
+            line-height: 1.3;
+            margin-top: 2px;
+            transition: color 0.3s ease;
+        }
+
+        .complications-row {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            align-items: stretch;
+        }
+
+        .complications-row.single-col {
+            grid-template-columns: 1fr;
+        }
+
+        .complication-card {
+            background: rgba(255, 255, 255, 0.045);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 20px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.25s ease, border-color 0.25s ease;
+            min-height: 54px;
+            backdrop-filter: blur(16px);
+        }
+
+        .complication-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        #location-complication {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .location-details {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .location-top-line {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .weather-badge {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            width: 36px;
+            height: 36px;
+            flex-shrink: 0;
+        }
+
+        #temp-display {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+        }
+
+        #current-temp {
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 13px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        #high-low-temp {
+            font-size: 10px;
+            font-weight: 500;
+            color: #94a3b8;
+            letter-spacing: 0.2px;
+        }
+
+        #weather-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
+            transition: all 0.3s ease;
+        }
+
+        #gps-btn {
+            width: 13px;
+            height: 13px;
+            cursor: pointer;
+            color: #64748b;
+            flex-shrink: 0;
+            transition: color 0.2s, transform 0.2s;
+        }
+        #gps-btn:hover {
+            color: #38bdf8;
+            transform: scale(1.12);
+        }
+        
+        #location-text {
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            color: #e2e8f0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: color 0.2s;
+        }
+        #location-text:hover { color: #38bdf8; }
+
+        #location-input {
+            display: none;
+            background: rgba(2, 6, 23, 0.8);
+            border: 1px solid rgba(56, 189, 248, 0.5);
+            color: #fff;
+            border-radius: 8px;
+            padding: 2px 6px;
+            font-size: 12px;
+            width: 100%;
+            outline: none;
+            font-family: inherit;
+        }
+        #location-input.active {
+            display: block;
+        }
+
+        #date-complication {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .date-left-col {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1px;
+        }
+
+        .date-right-col {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: #94a3b8;
+        }
+
+        .date-top {
+            font-size: 13px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 0.4px;
+        }
+
+        .date-bottom {
+            font-size: 10px;
+            font-weight: 500;
+            color: #94a3b8;
+            letter-spacing: 0.5px;
+        }
+
+        .highlight { color: #38bdf8; font-weight: 700; }
+
+        .dial-wrapper {
+            position: relative;
+            width: calc(var(--dial-size) + 12px);
+            height: calc(var(--dial-size) + 12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            padding: 6px;
+            background: linear-gradient(145deg, rgba(255,255,255,0.13), rgba(255,255,255,0.02));
+            box-shadow: 
+                0 15px 35px rgba(0, 0, 0, 0.6),
+                inset 0 1px 1px rgba(255, 255, 255, 0.25);
+            transition: width 0.3s ease, height 0.3s ease;
+        }
+
+        #dial-canvas {
+            width: var(--dial-size);
+            height: var(--dial-size);
+            border-radius: 50%;
+            cursor: grab;
+            box-shadow: 
+                inset 0 0 28px rgba(0,0,0,0.92), 
+                0 0 0 1px rgba(255,255,255,0.12);
+            background: rgba(2, 6, 23, 0.7);
+            transition: width 0.3s ease, height 0.3s ease;
+        }
+        #dial-canvas:active { cursor: grabbing; }
+
+        /* Quick Astronomical Telemetry Strip */
+        .telemetry-strip {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            background: rgba(15, 23, 42, 0.42);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 7px 10px;
+            backdrop-filter: blur(14px);
+        }
+
+        .telemetry-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            padding: 3px 4px;
+            border-radius: 10px;
+            transition: background 0.2s ease;
+        }
+
+        .telemetry-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .telemetry-label {
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #64748b;
+        }
+
+        .telemetry-val {
+            font-size: 11px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            color: #e2e8f0;
+            margin-top: 1px;
+        }
+
+        .footer-controls {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2px 4px 0 4px;
+            gap: 8px;
+        }
+
+        #digital-time {
+            font-size: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+            color: rgba(248, 250, 252, 0.95);
+            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            transition: color 0.3s, text-shadow 0.3s;
+            letter-spacing: -0.5px;
+        }
+        #digital-time.simulating {
+            color: #38bdf8;
+            text-shadow: 0 0 16px rgba(56, 189, 248, 0.55);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        #reset-time-btn, #date-picker {
+            background: rgba(255, 255, 255, 0.08);
+            color: #e2e8f0;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 6px 10px;
+            border-radius: 14px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            font-family: inherit;
+            outline: none;
+        }
+
+        #date-picker {
+            max-width: 138px;
+            font-size: 10.5px;
+        }
+        
+        #date-picker::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            opacity: 0.75;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 2px;
+        }
+        
+        #reset-time-btn {
+            opacity: 0;
+            transform: scale(0.92);
+            pointer-events: none;
+            background: rgba(56, 189, 248, 0.18);
+            border-color: rgba(56, 189, 248, 0.4);
+            color: #bae6fd;
+        }
+
+        #reset-time-btn.visible {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+
+        #reset-time-btn:hover, #date-picker:hover { 
+            background: rgba(255, 255, 255, 0.16); 
+            border-color: rgba(255, 255, 255, 0.35);
+            color: #ffffff;
+        }
+
+        .studio-panel {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%) translateX(24px) scale(0.96);
+            width: 310px;
+            max-height: 90vh;
+            overflow-y: auto;
+            background: rgba(9, 14, 28, 0.84);
+            backdrop-filter: blur(36px) saturate(190%);
+            -webkit-backdrop-filter: blur(36px) saturate(190%);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-top-color: rgba(255, 255, 255, 0.28);
+            border-radius: 28px;
+            padding: 18px;
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(56, 189, 248, 0.12);
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .studio-panel.open {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(-50%) translateX(0) scale(1);
+        }
+
+        .studio-section-title {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.1px;
+            color: #64748b;
+            margin: 12px 0 6px 0;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+
+        .preset-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 7px 4px;
+            font-size: 10.5px;
+            font-weight: 600;
+            color: #cbd5e1;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        .preset-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+        .preset-btn.active {
+            background: rgba(56, 189, 248, 0.2);
+            border-color: rgba(56, 189, 248, 0.55);
+            color: #38bdf8;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+        }
+
+        .slider-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11.5px;
+            color: #e2e8f0;
+            font-weight: 500;
+        }
+
+        .slider-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #38bdf8;
+        }
+
+        input[type="range"].studio-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 999px;
+            outline: none;
+        }
+        input[type="range"].studio-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #38bdf8;
+            border: 2px solid #fff;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.45);
+        }
+
+        .toggle-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .toggle-chip {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 10.5px;
+            font-weight: 500;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .toggle-chip.active {
+            background: rgba(56, 189, 248, 0.16);
+            border-color: rgba(56, 189, 248, 0.45);
+            color: #e0f2fe;
+        }
+
+        /* Subtle Desktop Bottom Helper Bar (auto-fades unless hovered) */
+        .desktop-quick-dock {
+            position: fixed;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 999px;
+            padding: 5px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11px;
+            color: #94a3b8;
+            opacity: 0.32;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            z-index: 50;
+        }
+        .desktop-quick-dock:hover {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-2px);
+        }
+        .dock-pill-btn {
+            cursor: pointer;
+            padding: 3px 9px;
+            border-radius: 999px;
+            color: #e2e8f0;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .dock-pill-btn:hover, .dock-pill-btn.active {
+            background: rgba(56, 189, 248, 0.22);
+            border-color: rgba(56, 189, 248, 0.5);
+            color: #fff;
+        }
+
+        .dock-pill-btn.exe-cta {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.35), rgba(99, 102, 241, 0.35));
+            border-color: rgba(56, 189, 248, 0.65);
+            color: #f8fafc;
+            font-weight: 600;
+            box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
+        }
+        .dock-pill-btn.exe-cta:hover {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.55), rgba(99, 102, 241, 0.55));
+            transform: translateY(-1px);
+        }
+
+        /* Hide browser preview dock when running as a compiled desktop app (?desktop=1) */
+        body.native-desktop-app .desktop-quick-dock,
+        body.native-desktop-app .desktop-grid-overlay,
+        body.native-desktop-app::before,
+        body.native-desktop-app::after {
+            display: none !important;
+        }
+
+        /* True Frameless Desktop App Mode: Tightly wraps the widget with zero outer box */
+        body.native-desktop-app {
+            background: #060d1f !important;
+            display: block !important;
+            min-height: 100vh;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        body.native-desktop-app .widget-stage {
+            transform: none !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            display: flex !important;
+        }
+
+        body.native-desktop-app .widget-container {
+            width: 100vw !important;
+            max-width: 100vw !important;
+            height: 100vh !important;
+            margin: 0 !important;
+            border-radius: 46px !important;
+            opacity: 1 !important; /* Native OS layered window handles overall translucency */
+            box-shadow:
+                inset 0 1px 2px rgba(255, 255, 255, 0.32),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+                inset 0 -2px 6px rgba(0, 0, 0, 0.6) !important;
+            cursor: default;
+        }
+
+        body.native-desktop-app .widget-container.layout-orb {
+            border-radius: 50% !important;
+            justify-content: center;
+        }
+
+        /* Studio Drawer fits cleanly inside the frameless widget when opened in Desktop Mode */
+        body.native-desktop-app .studio-panel {
+            position: fixed;
+            inset: 6px;
+            width: auto !important;
+            max-height: calc(100vh - 12px) !important;
+            transform: scale(0.96);
+            border-radius: 40px;
+            background: rgba(7, 12, 26, 0.95);
+        }
+        body.native-desktop-app .studio-panel.open {
+            transform: scale(1);
+        }
+
+        .desktop-only-btn {
+            display: none !important;
+        }
+        body.native-desktop-app .desktop-only-btn {
+            display: flex !important;
+        }
+
+        .exe-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.72);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.28s ease;
+            padding: 16px;
+        }
+        .exe-modal-backdrop.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .exe-modal-card {
+            width: 100%;
+            max-width: 500px;
+            background: linear-gradient(160deg, rgba(15, 23, 42, 0.94) 0%, rgba(2, 6, 23, 0.97) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-top-color: rgba(56, 189, 248, 0.45);
+            border-radius: 28px;
+            padding: 22px;
+            box-shadow: 0 35px 70px -15px rgba(0, 0, 0, 0.9), 0 0 30px rgba(56, 189, 248, 0.15);
+            transform: translateY(12px) scale(0.97);
+            transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+            color: #f8fafc;
+        }
+        .exe-modal-backdrop.open .exe-modal-card {
+            transform: translateY(0) scale(1);
+        }
+
+        .exe-option-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
+            padding: 14px;
+            margin-top: 10px;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+        .exe-option-card:hover {
+            background: rgba(255, 255, 255, 0.065);
+            border-color: rgba(56, 189, 248, 0.4);
+        }
+
+        .exe-download-btn {
+            width: 100%;
+            margin-top: 10px;
+            padding: 9px 14px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(56, 189, 248, 0.5);
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.28), rgba(59, 130, 246, 0.28));
+            color: #e0f2fe;
+        }
+        .exe-download-btn:hover {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.45), rgba(59, 130, 246, 0.45));
+            color: #ffffff;
+            box-shadow: 0 6px 20px rgba(14, 165, 233, 0.25);
+        }
+
+        @media (max-width: 720px) {
+            .widget-container.layout-deskbar {
+                width: 95vw;
+                flex-direction: column;
+            }
+            .studio-panel {
+                right: 10px;
+                left: 10px;
+                width: auto;
+                bottom: 58px;
+                top: auto;
+                transform: translateY(20px);
+            }
+            .studio-panel.open {
+                transform: translateY(0);
+            }
+        }
+    </style>
+    <!-- SunCalc library for accurate solar & lunar calculations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
+</head>
+<body>
+    <div class="desktop-grid-overlay"></div>
+
+    <div class="widget-stage" id="widget-stage">
+        <div class="widget-container" id="widget-container">
+            <!-- Hover-only Top Chrome: Quick Layout Cycle, Drag Bar, and Studio Settings Button -->
+            <div class="widget-hover-chrome">
+                <div class="flex items-center gap-1.5">
+                    <button class="chrome-icon-btn" id="quick-layout-btn" title="Cycle Widget Form Factor (Full / Deskbar / Compact / Orb)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                    </button>
+                    <button class="chrome-icon-btn desktop-only-btn" id="pin-top-btn" title="Pin Widget Always-on-Top">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="17" x2="12" y2="22"></line>
+                            <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="widget-drag-handle" id="widget-drag-handle" title="Drag to move widget anywhere on your desktop"></div>
+                <div class="flex items-center gap-1.5">
+                    <button class="chrome-icon-btn" id="open-studio-btn" title="Customize Opacity, Hover Fade & UI Panels">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                    </button>
+                    <button class="chrome-icon-btn desktop-only-btn hover:!text-rose-400 hover:!border-rose-400/50" id="close-widget-btn" title="Close Desktop Widget">✕</button>
+                </div>
+            </div>
+
+            <!-- Left / Center Dial Column -->
+            <div class="dial-column">
+                <!-- Isolated Celestial Phase Capsule (Moves into Info Column when in Deskbar mode via JS/CSS) -->
+                <div class="top-header-wrap collapsible-section" id="section-header" style="margin-bottom: 10px;">
+                    <div class="celestial-header-pill">
+                        <div id="solar-phase">ASTRONOMICAL TWILIGHT</div>
+                        <div id="lunar-phase">WAXING GIBBOUS</div>
+                    </div>
+                </div>
+
+                <!-- The Main Dial Canvas -->
+                <div class="dial-wrapper">
+                    <canvas id="dial-canvas"></canvas>
+                    <!-- Mini Floating Time Badge for Pure Orb Mode -->
+                    <div class="orb-hover-pill">
+                        <span id="orb-time-str">12:00</span>
+                        <span class="text-sky-400">•</span>
+                        <span id="orb-temp-str">--°C</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right / Bottom Info Column -->
+            <div class="info-column" id="info-column">
+                <!-- Dedicated Dual Complications Row -->
+                <div class="complications-row collapsible-section collapsible-on-idle" id="section-complications">
+                    <!-- Left: Location & Live Weather Card -->
+                    <div id="location-complication" class="complication-card">
+                        <div class="weather-badge" title="Current Weather Condition">
+                            <span id="weather-icon"></span>
+                        </div>
+                        <div class="location-details">
+                            <div class="location-top-line">
+                                <span id="location-text" title="Click to search any city">Erbil, IQ</span>
+                                <svg id="gps-btn" title="Use Auto GPS" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="9"></circle>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                                </svg>
+                            </div>
+                            <input type="text" id="location-input" placeholder="Search city...">
+                            <div id="temp-display">
+                                <span id="current-temp">--°C</span>
+                                <span id="high-low-temp">H:--° L:--°</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Calendar & Daylight Duration Card -->
+                    <div id="date-complication" class="complication-card">
+                        <div class="date-left-col">
+                            <div class="date-top"><span id="day-str" class="highlight">WED</span> <span id="date-str">14</span></div>
+                            <div id="month-year-str" class="date-bottom">OCT 2026</div>
+                        </div>
+                        <div class="date-right-col">
+                            <span id="day-length-str" title="Total Daylight Duration">☀ 11h 22m</span>
+                            <span id="moon-illum-str" title="Lunar Illumination">☾ 18%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Solar Event Telemetry Strip -->
+                <div class="telemetry-strip collapsible-section collapsible-on-idle" id="section-telemetry">
+                    <div class="telemetry-item" id="jump-sunrise" title="Click to jump to Sunrise">
+                        <span class="telemetry-label">Sunrise</span>
+                        <span class="telemetry-val" id="sunrise-val">06:12</span>
+                    </div>
+                    <div class="telemetry-item" id="jump-noon" title="Click to jump to Solar Noon">
+                        <span class="telemetry-label">Solar Noon</span>
+                        <span class="telemetry-val" id="noon-val">11:53</span>
+                    </div>
+                    <div class="telemetry-item" id="jump-sunset" title="Click to jump to Sunset">
+                        <span class="telemetry-label">Sunset</span>
+                        <span class="telemetry-val" id="sunset-val">17:34</span>
+                    </div>
+                    <div class="telemetry-item" id="jump-eclipse" title="Click to preview next Solar/Lunar Eclipse">
+                        <span class="telemetry-label">Eclipse</span>
+                        <span class="telemetry-val text-amber-300" id="eclipse-val">Feb '27</span>
+                    </div>
+                </div>
+
+                <!-- Bottom Controls -->
+                <div class="footer-controls collapsible-section" id="section-footer">
+                    <div class="btn-group collapsible-on-idle">
+                        <input type="datetime-local" id="date-picker" title="Jump to specific date and time">
+                        <button id="reset-time-btn">Live Now</button>
+                    </div>
+                    <div id="digital-time">12:00:00</div>
+                </div>
+            </div>
+
+            <!-- Interactive Corner Resize Grip -->
+            <div class="resize-grip" id="resize-grip" title="Drag to resize widget & auto-adapt layout">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                    <line x1="21" y1="15" x2="15" y2="21"></line>
+                    <line x1="21" y1="8" x2="8" y2="21"></line>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <aside class="studio-panel" id="studio-panel">
+        <div class="flex items-center justify-between pb-2 border-b border-white/10">
+            <div>
+                <h2 class="text-xs font-bold tracking-wider uppercase text-sky-400">PC Widget Studio</h2>
+                <p class="text-[10px] text-slate-400">Hover-Wake, Opacity & Adaptive UI</p>
+            </div>
+            <button class="chrome-icon-btn" id="close-studio-btn" title="Close Studio">✕</button>
+        </div>
+
+        <!-- 1. Form Factor Presets -->
+        <div class="studio-section-title">Form Factor / Layout</div>
+        <div class="preset-grid" id="layout-presets">
+            <button class="preset-btn active" data-layout="full">Full</button>
+            <button class="preset-btn" data-layout="deskbar">Deskbar</button>
+            <button class="preset-btn" data-layout="compact">Compact</button>
+            <button class="preset-btn" data-layout="orb">Pure Orb</button>
+        </div>
+
+        <!-- 2. Hover-Wake & Glass Opacity Controls -->
+        <div class="studio-section-title">Hover-to-Wake & Glass</div>
+        
+        <div class="slider-row">
+            <div class="slider-header">
+                <span>Idle Opacity (Mouse Away)</span>
+                <span class="slider-val" id="idle-opacity-val">38%</span>
+            </div>
+            <input type="range" class="studio-slider" id="idle-opacity-slider" min="8" max="100" value="38">
+        </div>
+
+        <div class="slider-row">
+            <div class="slider-header">
+                <span>Active Opacity (Mouse Hover)</span>
+                <span class="slider-val" id="active-opacity-val">100%</span>
+            </div>
+            <input type="range" class="studio-slider" id="active-opacity-slider" min="50" max="100" value="100">
+        </div>
+
+        <div class="slider-row">
+            <div class="slider-header">
+                <span>Glass Tint Density</span>
+                <span class="slider-val" id="glass-tint-val">52%</span>
+            </div>
+            <input type="range" class="studio-slider" id="glass-tint-slider" min="0" max="90" value="52">
+        </div>
+
+        <div class="slider-row">
+            <div class="slider-header">
+                <span>Widget Scale</span>
+                <span class="slider-val" id="widget-scale-val">100%</span>
+            </div>
+            <input type="range" class="studio-slider" id="widget-scale-slider" min="60" max="135" value="100">
+        </div>
+
+        <!-- 3. Show / Hide Individual UI Modules -->
+        <div class="studio-section-title">Show / Hide UI Modules</div>
+        <div class="toggle-chips">
+            <button class="toggle-chip active" data-toggle="header">Phase Pill</button>
+            <button class="toggle-chip active" data-toggle="weather">Weather Card</button>
+            <button class="toggle-chip active" data-toggle="date">Calendar Card</button>
+            <button class="toggle-chip active" data-toggle="telemetry">Telemetry Strip</button>
+            <button class="toggle-chip active" data-toggle="footer">Clock & Picker</button>
+            <button class="toggle-chip" id="toggle-ghost-chrome" title="Automatically collapse extra cards when your mouse leaves the widget">Ghost Chrome on Idle</button>
+            <button class="toggle-chip" id="toggle-frameless" title="Hide outer glass border so elements float on desktop">Frameless Glass</button>
+        </div>
+
+        <!-- 4. Desktop Wallpaper / Transparency Environment -->
+        <div class="studio-section-title">Desktop Environment</div>
+        <div class="preset-grid" id="bg-presets">
+            <button class="preset-btn active" data-bg="aurora">Aurora</button>
+            <button class="preset-btn" data-bg="bloom">Win11</button>
+            <button class="preset-btn" data-bg="dusk">Dusk</button>
+            <button class="preset-btn" data-bg="transparent">Alpha</button>
+        </div>
+
+        <!-- 5. Windows 11 Native .EXE Export -->
+        <div class="studio-section-title">Windows 11 Installation</div>
+        <button class="exe-download-btn" id="studio-exe-btn">
+            <span>❖</span>
+            <span>Build Windows 11 .EXE Widget</span>
+        </button>
+    </aside>
+
+    <!-- Bottom Quick-Access Desktop Dock -->
+    <div class="desktop-quick-dock">
+        <span id="hover-state-indicator" class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400" id="hover-dot"></span>
+            <span id="hover-status-text">Active (Hovered)</span>
+        </span>
+        <span>•</span>
+        <button class="dock-pill-btn" id="dock-ghost-btn" title="Toggle auto-collapsing cards when mouse is off widget">Ghost Mode: Off</button>
+        <button class="dock-pill-btn" id="dock-layout-btn">Layout: Full</button>
+        <button class="dock-pill-btn" id="dock-studio-btn">⚙ Customize</button>
+        <button class="dock-pill-btn exe-cta" id="dock-exe-btn">⬇ Get Win11 .EXE</button>
+    </div>
+
+    <!-- Windows 11 .EXE Compiler & Installer Modal -->
+    <div class="exe-modal-backdrop" id="exe-modal-backdrop">
+        <div class="exe-modal-card">
+            <div class="flex items-center justify-between pb-3 border-b border-white/10">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-400 font-bold">❖</div>
+                    <div>
+                        <h3 class="text-sm font-bold text-white tracking-wide">Windows 11 .EXE Widget Builder</h3>
+                        <p class="text-[11px] text-slate-400">Compile & install a standalone `.exe` directly on your PC</p>
+                    </div>
+                </div>
+                <button class="chrome-icon-btn" id="close-exe-modal-btn" title="Close">✕</button>
+            </div>
+
+            <!-- Option 1: Zero-Dependency Native Windows 11 C# .EXE Compiler -->
+            <div class="exe-option-card">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-sky-300">1. True Frameless Desktop Widget Installer (v3 WebView2)</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">No Title Bar / Borderless</span>
+                </div>
+                <p class="text-[11px] text-slate-300 mt-1 leading-relaxed">
+                    Compiles a borderless, rounded-corner <strong class="text-white">SolarLunarWidget.exe</strong> using Windows 11's native <strong>WebView2</strong> engine—with <strong>zero title bar</strong>, native hover-opacity fade over your wallpaper, and a System Tray icon.
+                </p>
+                <button class="exe-download-btn" id="download-native-exe-btn">
+                    <span>⬇</span>
+                    <span>Download Frameless .EXE Builder (.bat)</span>
+                </button>
+            </div>
+
+            <!-- Option 2: SmartScreen-Free HTML + PowerShell Method -->
+            <div class="exe-option-card">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-amber-300">2. SmartScreen-Free Frameless Builder (Recommended)</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">No Title Bar • Unblocked</span>
+                </div>
+                <p class="text-[11px] text-slate-300 mt-1 leading-relaxed">
+                    Step 1: Click <strong>1. Get .HTML</strong> to save <code class="text-amber-200">SolarLunarWidget.html</code>.<br>
+                    Step 2: Click <strong>2. Copy PS Command</strong>, paste into Windows PowerShell, and press Enter. It removes the blue window bar and compiles a true borderless widget onto your Desktop.
+                </p>
+                <div class="grid grid-cols-2 gap-2 mt-2">
+                    <button class="exe-download-btn !mt-0" id="download-standalone-html-btn" style="border-color: rgba(251, 191, 36, 0.45); background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(217, 119, 6, 0.22));">
+                        <span>1. Get .HTML</span>
+                    </button>
+                    <button class="exe-download-btn !mt-0" id="copy-ps-compiler-btn" style="border-color: rgba(56, 189, 248, 0.5); background: linear-gradient(135deg, rgba(14, 165, 233, 0.28), rgba(59, 130, 246, 0.28));">
+                        <span>2. Copy PS Command</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Option 3: Electron Frameless Transparent Overlay .EXE -->
+            <div class="exe-option-card">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-indigo-300">3. True Frameless Transparent Overlay (.EXE)</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Requires Node.js</span>
+                </div>
+                <p class="text-[11px] text-slate-300 mt-1 leading-relaxed">
+                    Builds a borderless, per-pixel transparent Electron <strong class="text-white">.exe</strong> that floats directly over your Windows 11 wallpaper (requires <a href="https://nodejs.org" target="_blank" class="underline text-indigo-300">Node.js</a> installed on your PC).
+                </p>
+                <button class="exe-download-btn" id="download-electron-exe-btn" style="border-color: rgba(129, 140, 248, 0.5); background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(139, 92, 246, 0.25));">
+                    <span>⚡</span>
+                    <span>Download Transparent Overlay Builder (.bat)</span>
+                </button>
+            </div>
+
+            <p id="exe-status-msg" class="text-[11px] text-center text-emerald-400 mt-3 hidden"></p>
+        </div>
+    </div>
+
+    <script>
+        const config = {
+            size: 314,
+            dpi: Math.min(window.devicePixelRatio || 2, 3),
+            lat: 36.1901, // Erbil
+            lng: 44.0090,
+            locationName: "Erbil, IQ",
+            isInteracting: false,
+            simulatedTimeOffset: 0,
+            scrollVelocity: 0,
+            lastAngle: 0,
+            isDragging: false,
+            eclipsePresetIndex: 0,
+            layoutMode: 'full', // 'full', 'deskbar', 'compact', 'orb'
+            ghostChromeOnIdle: false,
+            isPointerOverWidget: true,
+            idleTimer: null,
+            dragOffset: { x: 0, y: 0 }
+        };
+
+        // Verified upcoming notable eclipses for quick testing
+        const notableEclipses = [
+            { label: "Feb '27", time: "2027-02-20T23:12:00Z" }, // Penumbral Lunar
+            { label: "Aug '27", time: "2027-08-02T10:07:00Z" }, // Total Solar Eclipse (Middle East / N. Africa)
+            { label: "Jan '28", time: "2028-01-12T04:13:00Z" }, // Partial Lunar
+            { label: "Jul '28", time: "2028-07-22T02:56:00Z" }  // Total Solar
+        ];
+
+        // Weather & Celestial Particle System State
+        const weatherData = {
+            type: 'clear', // 'clear', 'clouds', 'rain', 'snow'
+            temps: { current: '--', max: '--', min: '--' },
+            drops: [],
+            snowflakes: [],
+            clouds: [],
+            stars: [],
+            lastFetchedDateHour: null,
+            debounceTimer: null
+        };
+
+        const canvas = document.getElementById('dial-canvas');
+        const ctx = canvas.getContext('2d');
+        const widgetContainer = document.getElementById('widget-container');
+        const widgetStage = document.getElementById('widget-stage');
+        const dayStrEl = document.getElementById('day-str');
+        const dateStrEl = document.getElementById('date-str');
+        const monthYearStrEl = document.getElementById('month-year-str');
+        const dayLengthStrEl = document.getElementById('day-length-str');
+        const moonIllumStrEl = document.getElementById('moon-illum-str');
+        const sunriseValEl = document.getElementById('sunrise-val');
+        const noonValEl = document.getElementById('noon-val');
+        const sunsetValEl = document.getElementById('sunset-val');
+        const eclipseValEl = document.getElementById('eclipse-val');
+        const digitalTimeEl = document.getElementById('digital-time');
+        const orbTimeStrEl = document.getElementById('orb-time-str');
+        const orbTempStrEl = document.getElementById('orb-temp-str');
+        const resetTimeBtn = document.getElementById('reset-time-btn');
+        const datePicker = document.getElementById('date-picker');
+        const solarPhaseEl = document.getElementById('solar-phase');
+        const lunarPhaseEl = document.getElementById('lunar-phase');
+
+        // Layout Parameters
+        const cx = config.size / 2;
+        const cy = config.size / 2;
+        const radius = config.size / 2;
+        const sunTrackRadius = radius * 0.65;
+        const innerDialRadius = radius * 0.44;
+
+        function initWeatherParticles() {
+            // Procedural Night Stars
+            weatherData.stars = [];
+            for (let i = 0; i < 65; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = (innerDialRadius + 6) + Math.random() * (radius - innerDialRadius - 12);
+                weatherData.stars.push({
+                    x: cx + Math.cos(angle) * dist,
+                    y: cy + Math.sin(angle) * dist,
+                    r: 0.5 + Math.random() * 1.1,
+                    baseAlpha: 0.25 + Math.random() * 0.65,
+                    twinkleSpeed: 0.015 + Math.random() * 0.03,
+                    phase: Math.random() * Math.PI * 2
+                });
+            }
+
+            // Volumetric Soft Clouds
+            weatherData.clouds = [];
+            for (let i = 0; i < 9; i++) {
+                weatherData.clouds.push({
+                    x: cx + (Math.random() * radius * 2 - radius),
+                    y: cy + (Math.random() * radius * 1.8 - radius * 0.9),
+                    speedX: 0.03 + Math.random() * 0.04,
+                    opacity: 0.12 + Math.random() * 0.16,
+                    rx: 38 + Math.random() * 35,
+                    ry: 14 + Math.random() * 12
+                });
+            }
+
+            // Rain Streaks
+            weatherData.drops = [];
+            for (let i = 0; i < 95; i++) {
+                weatherData.drops.push({
+                    x: cx + (Math.random() * radius * 2 - radius),
+                    y: cy + (Math.random() * radius * 2 - radius),
+                    speedY: 7 + Math.random() * 4.5,
+                    speedX: 1.4 + Math.random() * 1.6,
+                    length: 12 + Math.random() * 16,
+                    alpha: 0.14 + Math.random() * 0.18
+                });
+            }
+
+            // Depth-of-Field Snowflakes
+            weatherData.snowflakes = [];
+            for (let i = 0; i < 110; i++) {
+                weatherData.snowflakes.push({
+                    x: cx + (Math.random() * radius * 2 - radius),
+                    y: cy + (Math.random() * radius * 2 - radius),
+                    r: 0.8 + Math.random() * 1.6,
+                    speedY: 0.35 + Math.random() * 0.65,
+                    wobble: Math.random() * Math.PI * 2,
+                    wobbleAmp: 6 + Math.random() * 10,
+                    opacity: 0.18 + Math.random() * 0.28
+                });
+            }
+        }
+
+        function updateWeatherIcon() {
+            const iconEl = document.getElementById('weather-icon');
+            if (!iconEl) return;
+            if (weatherData.type === 'clear') {
+                iconEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#fde047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="4.22" x2="19.78" y2="5.64"></line></svg>';
+            } else if (weatherData.type === 'clouds') {
+                iconEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>';
+            } else if (weatherData.type === 'rain') {
+                iconEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16" y1="13" x2="16" y2="21"></line><line x1="8" y1="13" x2="8" y2="21"></line><line x1="12" y1="15" x2="12" y2="23"></line><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path></svg>';
+            } else if (weatherData.type === 'snow') {
+                iconEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#e0f2fe" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"></path><line x1="8" y1="16" x2="8.01" y2="16"></line><line x1="8" y1="20" x2="8.01" y2="20"></line><line x1="12" y1="18" x2="12.01" y2="18"></line><line x1="12" y1="22" x2="12.01" y2="22"></line><line x1="16" y1="16" x2="16.01" y2="16"></line><line x1="16" y1="20" x2="16.01" y2="20"></line></svg>';
+            }
+        }
+
+        async function fetchWeatherDataForDate(lat, lng, targetDate) {
+            const targetYear = targetDate.getFullYear();
+            const targetMonth = String(targetDate.getMonth() + 1).padStart(2, '0');
+            const targetDay = String(targetDate.getDate()).padStart(2, '0');
+            const targetHour = targetDate.getHours();
+            
+            const dateStr = `${targetYear}-${targetMonth}-${targetDay}`;
+            const dateHourKey = `${lat.toFixed(2)}-${lng.toFixed(2)}-${dateStr}-${targetHour}`;
+            
+            if (weatherData.lastFetchedDateHour === dateHourKey) return; 
+            weatherData.lastFetchedDateHour = dateHourKey;
+
+            const tempEl = document.getElementById('current-temp');
+            const hiLoEl = document.getElementById('high-low-temp');
+            tempEl.style.opacity = '0.5';
+
+            const now = new Date();
+            const diffDays = Math.round((targetDate - now) / (1000 * 60 * 60 * 24));
+            
+            try {
+                let url = '';
+                if (diffDays > 14) {
+                    throw new Error("Future data unavailable beyond 14 days");
+                } else if (diffDays < -90) {
+                    url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${dateStr}&end_date=${dateStr}&hourly=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto`;
+                } else {
+                    url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&start_date=${dateStr}&end_date=${dateStr}&hourly=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto`;
+                }
+
+                const res = await fetch(url);
+                if (!res.ok) throw new Error("API Error");
+                const data = await res.json();
+                
+                if (!data || !data.hourly || data.hourly.time.length === 0) throw new Error("No hourly data");
+
+                const code = data.hourly.weather_code[targetHour];
+                const currentTemp = data.hourly.temperature_2m[targetHour];
+                const maxTemp = data.daily.temperature_2m_max[0];
+                const minTemp = data.daily.temperature_2m_min[0];
+
+                if (code === undefined || currentTemp === null) throw new Error("Missing hour data");
+
+                if (code <= 1) weatherData.type = 'clear';
+                else if (code === 2 || code === 3 || code === 45 || code === 48) weatherData.type = 'clouds';
+                else if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82) || (code >= 95 && code <= 99)) weatherData.type = 'rain';
+                else if ((code >= 71 && code <= 77) || (code >= 85 && code <= 86)) weatherData.type = 'snow';
+                else weatherData.type = 'clear';
+
+                tempEl.textContent = `${Math.round(currentTemp)}°C`;
+                hiLoEl.textContent = `H:${Math.round(maxTemp)}° L:${Math.round(minTemp)}°`;
+            } catch (err) {
+                weatherData.type = 'clear';
+                tempEl.textContent = `--°C`;
+                hiLoEl.textContent = `H:--° L:--°`;
+            }
+            
+            tempEl.style.opacity = '1';
+            updateWeatherIcon();
+        }
+
+        async function updateWeather(lat, lng) {
+            const now = new Date(Date.now() + config.simulatedTimeOffset);
+            fetchWeatherDataForDate(lat, lng, now);
+        }
+
+        function drawStars(ctx, altDeg, eclipseFactor) {
+            let starVisibility = 1;
+            if (altDeg > -0.83) {
+                starVisibility = Math.max(0, eclipseFactor * 0.85);
+            } else if (altDeg > -12) {
+                starVisibility = Math.min(1, (-altDeg - 0.83) / 11.17);
+            }
+            if (starVisibility <= 0.02) return;
+
+            ctx.save();
+            weatherData.stars.forEach(s => {
+                s.phase += s.twinkleSpeed;
+                const twinkle = 0.65 + 0.35 * Math.sin(s.phase);
+                ctx.globalAlpha = s.baseAlpha * twinkle * starVisibility;
+                ctx.fillStyle = '#f8fafc';
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.restore();
+        }
+
+        function drawWeather(ctx) {
+            const type = weatherData.type;
+            if (type === 'clear') return;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+            ctx.clip();
+
+            // Volumetric Soft Radial Clouds
+            if (type === 'clouds' || type === 'rain' || type === 'snow') {
+                ctx.globalCompositeOperation = 'screen';
+                weatherData.clouds.forEach(c => {
+                    const grad = ctx.createRadialGradient(c.x, c.y, 2, c.x, c.y, c.rx);
+                    grad.addColorStop(0, `rgba(226, 232, 240, ${c.opacity})`);
+                    grad.addColorStop(0.55, `rgba(148, 163, 184, ${c.opacity * 0.5})`);
+                    grad.addColorStop(1, 'rgba(148, 163, 184, 0)');
+
+                    ctx.save();
+                    ctx.translate(c.x, c.y);
+                    ctx.scale(1, c.ry / c.rx);
+                    ctx.translate(-c.x, -c.y);
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(c.x, c.y, c.rx, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+
+                    c.x += c.speedX;
+                    if (c.x - c.rx > cx + radius) c.x = cx - radius - c.rx;
+                });
+            }
+
+            // Subtle Rain Streaks
+            if (type === 'rain') {
+                ctx.lineWidth = 1;
+                ctx.globalCompositeOperation = 'screen';
+                weatherData.drops.forEach(d => {
+                    ctx.strokeStyle = `rgba(186, 230, 253, ${d.alpha})`;
+                    ctx.beginPath();
+                    ctx.moveTo(d.x, d.y);
+                    ctx.lineTo(d.x + d.speedX, d.y + d.length);
+                    ctx.stroke();
+                    
+                    d.y += d.speedY;
+                    d.x += d.speedX;
+                    if (d.y > cy + radius + 20) { 
+                        d.y = cy - radius - 30; 
+                        d.x = cx + (Math.random() * radius * 2 - radius); 
+                    }
+                });
+            }
+
+            // Soft Background Snowflakes
+            if (type === 'snow') {
+                ctx.fillStyle = '#ffffff';
+                ctx.globalCompositeOperation = 'screen';
+                weatherData.snowflakes.forEach(s => {
+                    ctx.globalAlpha = s.opacity;
+                    ctx.beginPath();
+                    const currentX = s.x + Math.sin(s.wobble) * s.wobbleAmp;
+                    ctx.arc(currentX, s.y, s.r, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    s.y += s.speedY;
+                    s.wobble += 0.018;
+                    if (s.y > cy + radius + 15) { 
+                        s.y = cy - radius - 15; 
+                        s.x = cx + (Math.random() * radius * 2 - radius); 
+                    }
+                });
+            }
+            
+            ctx.restore();
+        }
+
+        function setupCanvas() {
+            canvas.width = config.size * config.dpi;
+            canvas.height = config.size * config.dpi;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(config.dpi, config.dpi);
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+        }
+
+        function timeToRadians24h(date) {
+            const hours = date.getHours() + (date.getMinutes() / 60) + (date.getSeconds() / 3600) + (date.getMilliseconds() / 3600000);
+            return ((hours / 24) * 2 * Math.PI) + (Math.PI / 2);
+        }
+
+        function timeToRadians12h(date, isMinute = false, isSecond = false) {
+            let val = (date.getHours() % 12) + (date.getMinutes() / 60) + (date.getSeconds() / 3600);
+            if (isMinute) val = date.getMinutes() + (date.getSeconds() / 60) + (date.getMilliseconds() / 60000);
+            if (isSecond) val = date.getSeconds() + (date.getMilliseconds() / 1000);
+            const total = isMinute || isSecond ? 60 : 12;
+            return ((val / total) * 2 * Math.PI) - (Math.PI / 2);
+        }
+
+        const phases = [
+            { maxAlt: -18, name: "NIGHT", zenith: '#020617', horizon: '#040d21' },
+            { maxAlt: -12, name: "ASTRONOMICAL TWILIGHT", zenith: '#08122a', horizon: '#171c42' },
+            { maxAlt: -6,  name: "NAUTICAL TWILIGHT", zenith: '#131b42', horizon: '#362c7a' },
+            { maxAlt: -0.83, name: "CIVIL TWILIGHT", zenith: '#292969', horizon: '#ac325e' },
+            { maxAlt: 0,   name: "SUNRISE/SUNSET", zenith: '#3c2473', horizon: '#ea6c20' },
+            { maxAlt: 6,   name: "GOLDEN HOUR", zenith: '#1273ab', horizon: '#f5be49' },
+            { maxAlt: 90,  name: "DAY", zenith: '#1d8cd8', horizon: '#7fd6fa' }
+        ];
+
+        function getSkyPhase(altitudeDeg, isMorning) {
+            let activePhase = phases[0];
+            for (let i = 0; i < phases.length; i++) {
+                if (altitudeDeg <= phases[i].maxAlt) {
+                    activePhase = phases[i];
+                    break;
+                }
+            }
+            if (altitudeDeg > phases[phases.length - 2].maxAlt) activePhase = phases[phases.length - 1];
+
+            let phaseName = activePhase.name;
+            if (phaseName === "SUNRISE/SUNSET") {
+                phaseName = isMorning ? "SUNRISE" : "SUNSET";
+            } else if (altitudeDeg > -18 && altitudeDeg < -0.83) {
+                if (phaseName === "ASTRONOMICAL TWILIGHT") phaseName = isMorning ? "ASTRONOMICAL DAWN" : "ASTRONOMICAL DUSK";
+                if (phaseName === "NAUTICAL TWILIGHT") phaseName = isMorning ? "NAUTICAL DAWN" : "NAUTICAL DUSK";
+                if (phaseName === "CIVIL TWILIGHT") phaseName = isMorning ? "CIVIL DAWN" : "CIVIL DUSK";
+            }
+            return { name: phaseName, colors: activePhase };
+        }
+
+        function interpolateColor(c1, c2, factor) {
+            const hex2rgb = (hex) => {
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [0,0,0];
+            };
+            const [r1, g1, b1] = hex2rgb(c1);
+            const [r2, g2, b2] = hex2rgb(c2);
+            factor = Math.max(0, Math.min(1, factor));
+            return `rgb(${Math.round(r1 + factor * (r2 - r1))}, ${Math.round(g1 + factor * (g2 - g1))}, ${Math.round(b1 + factor * (b2 - b1))})`;
+        }
+
+        function getInterpolatedSky(altitudeDeg, eclipseFactor = 0) {
+            let lower = phases[0];
+            let upper = phases[phases.length - 1];
+            for (let i = 0; i < phases.length - 1; i++) {
+                if (altitudeDeg >= phases[i].maxAlt && altitudeDeg <= phases[i + 1].maxAlt) {
+                    lower = phases[i];
+                    upper = phases[i + 1];
+                    break;
+                }
+            }
+            
+            let zenith, horizon;
+            if (altitudeDeg <= lower.maxAlt) {
+                zenith = lower.zenith; horizon = lower.horizon;
+            } else if (altitudeDeg >= upper.maxAlt) {
+                zenith = upper.zenith; horizon = upper.horizon;
+            } else {
+                const factor = (altitudeDeg - lower.maxAlt) / (upper.maxAlt - lower.maxAlt);
+                zenith = interpolateColor(lower.zenith, upper.zenith, factor);
+                horizon = interpolateColor(lower.horizon, upper.horizon, factor);
+            }
+
+            if (eclipseFactor > 0 && altitudeDeg > -0.833) {
+                zenith = interpolateColor(zenith, '#020617', eclipseFactor * 0.96);
+                horizon = interpolateColor(horizon, '#7c2d12', eclipseFactor * 0.92);
+            }
+            return { zenith, horizon };
+        }
+
+        function getMoonName(date, phase, distanceKm) {
+            const month = date.getMonth();
+            const names = [
+                "Wolf Moon", "Snow Moon", "Worm Moon", "Pink Moon",
+                "Flower Moon", "Strawberry Moon", "Buck Moon", "Sturgeon Moon",
+                "Harvest Moon", "Hunter's Moon", "Beaver Moon", "Cold Moon"
+            ];
+            
+            let distanceTag = "";
+            if (distanceKm) {
+                if (distanceKm < 362000) distanceTag = "SUPER ";
+                else if (distanceKm > 404000) distanceTag = "MICRO ";
+            }
+
+            if (phase < 0.02 || phase > 0.98) return "NEW MOON";
+            if (phase < 0.23) return "WAXING CRESCENT";
+            if (phase < 0.27) return "FIRST QUARTER";
+            if (phase < 0.48) return "WAXING GIBBOUS";
+            if (phase < 0.52) return `${distanceTag}FULL ${names[month].toUpperCase()}`;
+            if (phase < 0.73) return "WANING GIBBOUS";
+            if (phase < 0.77) return "LAST QUARTER";
+            return "WANING CRESCENT";
+        }
+
+        function drawMoon(now, sunX, sunY, lunarEclipseFactor) {
+            const moonIllum = SunCalc.getMoonIllumination(now);
+            const phase = moonIllum.phase; 
+            
+            const sunRad = timeToRadians24h(now);
+            const moonAngle = sunRad - (phase * 2 * Math.PI);
+            
+            const moonX = cx + sunTrackRadius * Math.cos(moonAngle);
+            const moonY = cy + sunTrackRadius * Math.sin(moonAngle);
+            const r = 7.5; 
+
+            ctx.save();
+            ctx.translate(moonX, moonY);
+            
+            const angleToSun = Math.atan2(sunY - moonY, sunX - moonX);
+            ctx.rotate(angleToSun);
+
+            // Subtle outer lunar glow
+            const moonGlow = ctx.createRadialGradient(0, 0, r * 0.8, 0, 0, r * 2.2);
+            moonGlow.addColorStop(0, lunarEclipseFactor > 0.1 ? 'rgba(239, 68, 68, 0.35)' : 'rgba(226, 232, 240, 0.22)');
+            moonGlow.addColorStop(1, 'rgba(226, 232, 240, 0)');
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 2.2, 0, 2 * Math.PI);
+            ctx.fillStyle = moonGlow;
+            ctx.fill();
+
+            // 1. Dark Earthshine Base
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, 2 * Math.PI);
+            ctx.fillStyle = '#091124';
+            ctx.fill();
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, 2 * Math.PI);
+            ctx.clip();
+
+            const moonBrightColor = interpolateColor('#f8fafc', '#dc2626', lunarEclipseFactor);
+            const term = Math.cos(phase * 2 * Math.PI); 
+
+            // 2. Illuminated Hemisphere
+            ctx.beginPath();
+            ctx.arc(0, 0, r, -Math.PI/2, Math.PI/2, false); 
+            ctx.fillStyle = moonBrightColor;
+            ctx.fill();
+
+            // 3. Terminator Ellipse
+            ctx.beginPath();
+            ctx.ellipse(0, 0, Math.abs(term * r), r, 0, 0, 2 * Math.PI);
+            ctx.fillStyle = term > 0 ? '#091124' : moonBrightColor;
+            ctx.fill();
+
+            // 4. Subtle Lunar Maria Texture Spots
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.16)';
+            ctx.beginPath();
+            ctx.arc(2, -2.2, 2.1, 0, Math.PI * 2);
+            ctx.arc(1.2, 2.0, 1.6, 0, Math.PI * 2);
+            ctx.arc(-2.0, -1.0, 1.8, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawWatchFace(now, times, pos, moonPos) {
+            // 1. Base Night Background
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+            const nightGrad = ctx.createRadialGradient(cx, cy + radius * 0.4, 10, cx, cy, radius);
+            nightGrad.addColorStop(0, '#040b1e');
+            nightGrad.addColorStop(1, '#020617');
+            ctx.fillStyle = nightGrad;
+            ctx.fill();
+
+            let isPolarDay = isNaN(times.sunrise.getTime()) && pos.altitude > 0;
+            let isPolarNight = isNaN(times.sunrise.getTime()) && pos.altitude <= 0;
+
+            const sunriseRad = !isPolarNight && !isPolarDay ? timeToRadians24h(times.sunrise) : 0;
+            const sunsetRad = !isPolarNight && !isPolarDay ? timeToRadians24h(times.sunset) : 0;
+            const altDeg = pos.altitude * (180 / Math.PI);
+            
+            // True 3D Angular Separation between Sun & Moon for realistic Eclipse Detection
+            const dAlt = pos.altitude - moonPos.altitude;
+            const dAz = Math.atan2(Math.sin(pos.azimuth - moonPos.azimuth), Math.cos(pos.azimuth - moonPos.azimuth));
+            const angularSepDeg = Math.sqrt(dAlt * dAlt + dAz * dAz) * (180 / Math.PI);
+
+            const moonIllum = SunCalc.getMoonIllumination(now);
+            const phase = moonIllum.phase;
+
+            // Solar Eclipse requires New Moon AND tiny angular separation in the sky
+            let eclipseFactor = 0;
+            if ((phase < 0.012 || phase > 0.988) && angularSepDeg < 2.2) {
+                eclipseFactor = Math.max(0, 1 - (angularSepDeg / 2.2));
+            }
+
+            // Lunar Eclipse requires Full Moon AND close opposition
+            let lunarEclipseFactor = 0;
+            if (Math.abs(phase - 0.5) < 0.0045) {
+                lunarEclipseFactor = 1 - (Math.abs(phase - 0.5) / 0.0045);
+            }
+
+            // Draw Night Starfield
+            drawStars(ctx, altDeg, eclipseFactor);
+
+            const skyColors = getInterpolatedSky(altDeg, eclipseFactor);
+
+            // 2. Draw Day Wedge
+            if (!isPolarNight) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                
+                if (isPolarDay) {
+                    ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+                } else {
+                    let start = sunriseRad;
+                    let end = sunsetRad;
+                    if (start > end) {
+                        ctx.arc(cx, cy, radius, start, end + 2 * Math.PI, false);
+                    } else {
+                        ctx.arc(cx, cy, radius, start, end, false);
+                    }
+                }
+                ctx.closePath();
+                ctx.clip();
+
+                const gradient = ctx.createLinearGradient(cx, cy + radius * 0.35, cx, cy - radius);
+                gradient.addColorStop(0, skyColors.horizon);
+                gradient.addColorStop(1, skyColors.zenith);
+                
+                ctx.globalAlpha = 0.92;
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                ctx.restore();
+            }
+            
+            // Render Weather Behind Markings & Hands
+            drawWeather(ctx);
+
+            // 3. Draw Luminous Horizon Separator Lines
+            if (!isPolarDay && !isPolarNight) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + radius * Math.cos(sunriseRad), cy + radius * Math.sin(sunriseRad));
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + radius * Math.cos(sunsetRad), cy + radius * Math.sin(sunsetRad));
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+                ctx.lineWidth = 1.4;
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // 4. Draw 24h Ticks
+            draw24hMarkings();
+
+            // 5. Draw Sun & Moon Orbital Track Ring
+            ctx.beginPath();
+            ctx.arc(cx, cy, sunTrackRadius, 0, 2 * Math.PI);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+
+            const sunRad = timeToRadians24h(now);
+            const sunX = cx + sunTrackRadius * Math.cos(sunRad);
+            const sunY = cy + sunTrackRadius * Math.sin(sunRad);
+
+            // 6. Draw Sun & Moon
+            drawSun(now, altDeg, sunX, sunY, eclipseFactor);
+            drawMoon(now, sunX, sunY, lunarEclipseFactor);
+
+            // 7. Draw Inner 12h Clock
+            drawInnerClock(now);
+
+            return { eclipseFactor, lunarEclipseFactor };
+        }
+
+        function draw24hMarkings() {
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.font = "600 10.5px Inter";
+            
+            for (let i = 0; i < 96; i++) {
+                const rad = ((i / 96) * 2 * Math.PI) - (Math.PI / 2);
+                const isHour = i % 4 === 0;
+                const hourNum = i / 4;
+                const isEvenHour = isHour && (hourNum % 2 === 0);
+
+                const outerR = radius - 3;
+                let innerR = outerR - 3;
+                if (isEvenHour) innerR = outerR - 8.5;
+                else if (isHour) innerR = outerR - 5.5;
+                
+                ctx.beginPath();
+                ctx.moveTo(cx + innerR * Math.cos(rad), cy + innerR * Math.sin(rad));
+                ctx.lineTo(cx + outerR * Math.cos(rad), cy + outerR * Math.sin(rad));
+                ctx.strokeStyle = isEvenHour ? 'rgba(255,255,255,0.65)' : (isHour ? 'rgba(255,255,255,0.32)' : 'rgba(255,255,255,0.12)');
+                ctx.lineWidth = isEvenHour ? 1.5 : 1;
+                ctx.stroke();
+
+                if (isEvenHour) {
+                    const textR = outerR - 18;
+                    const textX = cx + textR * Math.cos(rad);
+                    const textY = cy + textR * Math.sin(rad);
+                    const numStr = hourNum === 0 ? '12' : (hourNum === 12 ? '24' : ((hourNum + 12) % 24).toString().padStart(2, '0'));
+                    
+                    ctx.fillStyle = 'rgba(248, 250, 252, 0.88)';
+                    ctx.shadowColor = 'rgba(0,0,0,0.65)';
+                    ctx.shadowBlur = 4;
+                    ctx.fillText(numStr, textX, textY);
+                    ctx.shadowBlur = 0;
+                }
+            }
+        }
+
+        function drawSun(now, altitudeDeg, sunX, sunY, eclipseFactor) {
+            const isDay = altitudeDeg > -0.833;
+
+            ctx.save();
+            if (isDay && eclipseFactor < 0.85) {
+                const glow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 22);
+                glow.addColorStop(0, 'rgba(255, 255, 255, 1)');
+                glow.addColorStop(0.28, 'rgba(253, 224, 71, 0.75)');
+                glow.addColorStop(0.65, 'rgba(251, 146, 60, 0.25)');
+                glow.addColorStop(1, 'rgba(253, 224, 71, 0)');
+                
+                ctx.beginPath();
+                ctx.arc(sunX, sunY, 22, 0, 2 * Math.PI);
+                ctx.fillStyle = glow;
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(sunX, sunY, 6.5, 0, 2 * Math.PI);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+                ctx.strokeStyle = '#fef08a';
+                ctx.lineWidth = 1.2;
+                ctx.stroke();
+            } else {
+                if (eclipseFactor >= 0.85) {
+                    const corona = ctx.createRadialGradient(sunX, sunY, 5, sunX, sunY, 20);
+                    corona.addColorStop(0, 'rgba(251, 191, 36, 0.9)');
+                    corona.addColorStop(0.5, 'rgba(245, 158, 11, 0.3)');
+                    corona.addColorStop(1, 'rgba(245, 158, 11, 0)');
+                    ctx.beginPath();
+                    ctx.arc(sunX, sunY, 20, 0, 2 * Math.PI);
+                    ctx.fillStyle = corona;
+                    ctx.fill();
+                }
+                ctx.beginPath();
+                ctx.arc(sunX, sunY, 6.2, 0, 2 * Math.PI);
+                ctx.fillStyle = '#020617';
+                ctx.fill();
+                ctx.lineWidth = 2.2;
+                ctx.strokeStyle = eclipseFactor >= 0.85 ? '#fbbf24' : '#94a3b8';
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function drawInnerClock(now) {
+            // Frosted Glass Subdial
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, innerDialRadius, 0, 2 * Math.PI);
+            const subGrad = ctx.createLinearGradient(cx, cy - innerDialRadius, cx, cy + innerDialRadius);
+            subGrad.addColorStop(0, 'rgba(30, 41, 59, 0.72)');
+            subGrad.addColorStop(1, 'rgba(2, 6, 23, 0.82)');
+            ctx.fillStyle = subGrad;
+            ctx.fill();
+            
+            ctx.lineWidth = 1.2;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+            ctx.stroke();
+
+            // 60 Minute & 12 Hour Sub-ticks
+            for (let i = 0; i < 60; i++) {
+                const rad = (i / 60) * 2 * Math.PI - (Math.PI / 2);
+                const isMajor = i % 5 === 0;
+                const isQuarter = i % 15 === 0;
+                const tickLen = isQuarter ? 7 : (isMajor ? 5 : 2.5);
+
+                ctx.beginPath();
+                ctx.moveTo(cx + (innerDialRadius - tickLen) * Math.cos(rad), cy + (innerDialRadius - tickLen) * Math.sin(rad));
+                ctx.lineTo(cx + (innerDialRadius - 1) * Math.cos(rad), cy + (innerDialRadius - 1) * Math.sin(rad));
+                ctx.strokeStyle = isQuarter ? 'rgba(255,255,255,0.8)' : (isMajor ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.15)');
+                ctx.lineWidth = isQuarter ? 2 : 1;
+                ctx.stroke();
+            }
+
+            // Hands
+            const hRad = timeToRadians12h(now);
+            const mRad = timeToRadians12h(now, true);
+            const sRad = timeToRadians12h(now, false, true);
+
+            ctx.shadowColor = 'rgba(0,0,0,0.65)';
+            ctx.shadowBlur = 6;
+            ctx.shadowOffsetY = 2;
+
+            // Hour Hand
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + (innerDialRadius * 0.54) * Math.cos(hRad), cy + (innerDialRadius * 0.54) * Math.sin(hRad));
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 4.2;
+            ctx.stroke();
+
+            // Minute Hand
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + (innerDialRadius * 0.82) * Math.cos(mRad), cy + (innerDialRadius * 0.82) * Math.sin(mRad));
+            ctx.strokeStyle = '#f8fafc';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Sweeping Second Hand
+            ctx.beginPath();
+            ctx.moveTo(cx - 11 * Math.cos(sRad), cy - 11 * Math.sin(sRad));
+            ctx.lineTo(cx + (innerDialRadius * 0.9) * Math.cos(sRad), cy + (innerDialRadius * 0.9) * Math.sin(sRad));
+            ctx.strokeStyle = '#38bdf8'; 
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+
+            // Center Cap
+            ctx.beginPath();
+            ctx.arc(cx, cy, 3.8, 0, 2 * Math.PI);
+            ctx.fillStyle = '#38bdf8';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(cx, cy, 1.6, 0, 2 * Math.PI);
+            ctx.fillStyle = '#020617';
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function formatHHMM(dateObj) {
+            if (!dateObj || isNaN(dateObj.getTime())) return "--:--";
+            return `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
+        }
+
+        function updateUI(now, times, pos, moonPos, eclipseState) {
+            const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+            const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+            
+            dayStrEl.textContent = days[now.getDay()];
+            dateStrEl.textContent = now.getDate().toString().padStart(2, '0');
+            monthYearStrEl.textContent = `${months[now.getMonth()]} ${now.getFullYear()}`;
+
+            const h = now.getHours().toString().padStart(2, '0');
+            const m = now.getMinutes().toString().padStart(2, '0');
+            const s = now.getSeconds().toString().padStart(2, '0');
+            digitalTimeEl.textContent = `${h}:${m}:${s}`;
+
+            // Telemetry values
+            sunriseValEl.textContent = formatHHMM(times.sunrise);
+            noonValEl.textContent = formatHHMM(times.solarNoon);
+            sunsetValEl.textContent = formatHHMM(times.sunset);
+
+            if (!isNaN(times.sunrise.getTime()) && !isNaN(times.sunset.getTime())) {
+                const diffMs = Math.max(0, times.sunset - times.sunrise);
+                const hrs = Math.floor(diffMs / 3600000);
+                const mins = Math.round((diffMs % 3600000) / 60000);
+                dayLengthStrEl.textContent = `☀ ${hrs}h ${mins}m`;
+            } else {
+                dayLengthStrEl.textContent = pos.altitude > 0 ? '☀ 24h Day' : '☀ Polar Night';
+            }
+
+            const moonIllum = SunCalc.getMoonIllumination(now);
+            const phase = moonIllum.phase;
+            moonIllumStrEl.textContent = `☾ ${Math.round(moonIllum.fraction * 100)}%`;
+
+            const altDeg = pos.altitude * (180 / Math.PI);
+            const isMorning = now.getHours() < 12;
+            const phaseInfo = getSkyPhase(altDeg, isMorning);
+
+            if (eclipseState.eclipseFactor > 0.25 && altDeg > -0.833) {
+                solarPhaseEl.textContent = eclipseState.eclipseFactor > 0.8 ? "TOTAL SOLAR ECLIPSE" : "PARTIAL SOLAR ECLIPSE";
+                solarPhaseEl.style.color = "#fbbf24";
+            } else {
+                solarPhaseEl.textContent = phaseInfo.name;
+                if (phaseInfo.name === "DAY") solarPhaseEl.style.color = "#7dd3fc";
+                else if (phaseInfo.name.includes("TWILIGHT") || phaseInfo.name.includes("DAWN") || phaseInfo.name.includes("DUSK")) solarPhaseEl.style.color = "#cbd5e1";
+                else if (phaseInfo.name === "NIGHT") solarPhaseEl.style.color = "#94a3b8";
+                else if (phaseInfo.name.includes("GOLDEN") || phaseInfo.name.includes("SUN")) solarPhaseEl.style.color = "#fde047";
+                else solarPhaseEl.style.color = "#ffffff";
+            }
+
+            let lunarPhaseName = getMoonName(now, phase, moonPos.distance);
+            if (eclipseState.lunarEclipseFactor > 0.2 && altDeg <= -0.833) {
+                lunarPhaseName = "BLOOD MOON • LUNAR ECLIPSE";
+                lunarPhaseEl.style.color = "#f87171";
+            } else {
+                lunarPhaseEl.style.color = "#94a3b8";
+            }
+            lunarPhaseEl.textContent = lunarPhaseName;
+
+            // Update Mini Orb Hover Pill
+            if (orbTimeStrEl) orbTimeStrEl.textContent = `${h}:${m}`;
+            if (orbTempStrEl) orbTempStrEl.textContent = document.getElementById('current-temp').textContent;
+
+            if (config.isInteracting || Math.abs(config.simulatedTimeOffset) > 1000) {
+                digitalTimeEl.classList.add('simulating');
+                resetTimeBtn.classList.add('visible');
+            } else {
+                digitalTimeEl.classList.remove('simulating');
+                resetTimeBtn.classList.remove('visible');
+            }
+        }
+
+        function setWidgetIdleState(isIdle) {
+            const hoverDot = document.getElementById('hover-dot');
+            const hoverStatusText = document.getElementById('hover-status-text');
+            if (isIdle) {
+                widgetContainer.classList.add('is-idle');
+                if (hoverDot) hoverDot.className = 'w-2 h-2 rounded-full bg-amber-400/70';
+                if (hoverStatusText) hoverStatusText.textContent = 'Idle (Faded)';
+            } else {
+                widgetContainer.classList.remove('is-idle');
+                if (hoverDot) hoverDot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+                if (hoverStatusText) hoverStatusText.textContent = 'Active (Hovered)';
+            }
+            syncNativeHostOpacity(isIdle);
+            syncNativeHostSize();
+        }
+
+        function postToNativeHost(msg) {
+            if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === 'function') {
+                window.chrome.webview.postMessage(msg);
+            }
+        }
+
+        function syncNativeHostOpacity(isIdle) {
+            const idleVal = parseInt(document.getElementById('idle-opacity-slider')?.value || 38, 10) / 100;
+            const activeVal = parseInt(document.getElementById('active-opacity-slider')?.value || 100, 10) / 100;
+            const target = isIdle ? idleVal : activeVal;
+            postToNativeHost('opacity:' + target.toFixed(2));
+        }
+
+        function syncNativeHostSize() {
+            if (!document.body.classList.contains('native-desktop-app')) return;
+            const scale = (parseInt(document.getElementById('widget-scale-slider')?.value || 100, 10)) / 100;
+            const studioOpen = document.getElementById('studio-panel')?.classList.contains('open');
+            const exeOpen = document.getElementById('exe-modal-backdrop')?.classList.contains('open');
+
+            let w = 400;
+            let h = 588;
+            let r = 92;
+
+            const isIdleGhost = config.ghostChromeOnIdle && widgetContainer.classList.contains('is-idle');
+
+            if (studioOpen || exeOpen) {
+                w = 400;
+                h = 610;
+                r = 92;
+            } else if (config.layoutMode === 'deskbar') {
+                w = 670;
+                h = isIdleGhost ? 330 : 350;
+                r = 80;
+            } else if (config.layoutMode === 'compact') {
+                w = 356;
+                h = 432;
+                r = 84;
+            } else if (config.layoutMode === 'orb') {
+                w = 294;
+                h = 294;
+                r = 294;
+            } else {
+                // Full layout: calculate dynamic height based on visible modules
+                w = 400;
+                h = 375; // Base dial + padding
+                if (!document.getElementById('section-header').classList.contains('section-hidden')) h += 58;
+                if (!isIdleGhost) {
+                    if (!document.getElementById('section-complications').classList.contains('section-hidden')) h += 68;
+                    if (!document.getElementById('section-telemetry').classList.contains('section-hidden')) h += 52;
+                }
+                if (!document.getElementById('section-footer').classList.contains('section-hidden')) h += 42;
+                r = 92;
+            }
+
+            const dpr = window.devicePixelRatio || 1;
+            const physW = Math.round(w * scale * dpr);
+            const physH = Math.round(h * scale * dpr);
+            const physR = Math.round(r * scale * dpr);
+            postToNativeHost('resize:' + physW + ',' + physH + ',' + physR);
+        }
+
+        // Called by the C# native cursor tracker so hover-to-wake works even when another app is focused
+        window.setDesktopHoverState = function(isHovered) {
+            const studioPanel = document.getElementById('studio-panel');
+            if (isHovered) {
+                config.isPointerOverWidget = true;
+                clearTimeout(config.idleTimer);
+                setWidgetIdleState(false);
+            } else {
+                config.isPointerOverWidget = false;
+                clearTimeout(config.idleTimer);
+                const isInputFocused = document.activeElement === document.getElementById('location-input') ||
+                                       document.activeElement === datePicker;
+                if (!config.isDragging && (!studioPanel || !studioPanel.classList.contains('open')) && !isInputFocused) {
+                    setWidgetIdleState(true);
+                }
+            }
+        };
+
+        function applyLayoutMode(mode) {
+            config.layoutMode = mode;
+            widgetContainer.classList.remove('layout-deskbar', 'layout-compact', 'layout-orb');
+            
+            const headerSection = document.getElementById('section-header');
+            const infoColumn = document.getElementById('info-column');
+            const dialColumn = document.querySelector('.dial-column');
+
+            // Move header pill into info-column when in horizontal Deskbar mode for balanced geometry
+            if (mode === 'deskbar') {
+                widgetContainer.classList.add('layout-deskbar');
+                if (headerSection.parentElement !== infoColumn) {
+                    infoColumn.insertBefore(headerSection, infoColumn.firstChild);
+                    headerSection.style.marginBottom = '0px';
+                }
+                document.documentElement.style.setProperty('--dial-size', '276px');
+            } else {
+                if (headerSection.parentElement !== dialColumn) {
+                    dialColumn.insertBefore(headerSection, dialColumn.firstChild);
+                    headerSection.style.marginBottom = '10px';
+                }
+                if (mode === 'compact') {
+                    widgetContainer.classList.add('layout-compact');
+                    document.documentElement.style.setProperty('--dial-size', '290px');
+                } else if (mode === 'orb') {
+                    widgetContainer.classList.add('layout-orb');
+                    document.documentElement.style.setProperty('--dial-size', '264px');
+                } else {
+                    document.documentElement.style.setProperty('--dial-size', '314px');
+                }
+            }
+
+            // Sync active buttons
+            document.querySelectorAll('#layout-presets .preset-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.layout === mode);
+            });
+            const dockLayoutBtn = document.getElementById('dock-layout-btn');
+            if (dockLayoutBtn) {
+                const labels = { full: 'Full', deskbar: 'Deskbar', compact: 'Compact', orb: 'Orb' };
+                dockLayoutBtn.textContent = `Layout: ${labels[mode] || 'Full'}`;
+            }
+            saveWidgetPreferences();
+            syncNativeHostSize();
+        }
+
+        const STORAGE_KEY = 'solar_lunar_pc_widget_prefs_v1';
+
+        function saveWidgetPreferences() {
+            try {
+                const prefs = {
+                    lat: config.lat,
+                    lng: config.lng,
+                    locationName: config.locationName,
+                    layoutMode: config.layoutMode,
+                    ghostChromeOnIdle: config.ghostChromeOnIdle,
+                    frameless: widgetContainer.classList.contains('frameless-mode'),
+                    idleOpacity: document.getElementById('idle-opacity-slider')?.value || 38,
+                    activeOpacity: document.getElementById('active-opacity-slider')?.value || 100,
+                    glassTint: document.getElementById('glass-tint-slider')?.value || 52,
+                    widgetScale: document.getElementById('widget-scale-slider')?.value || 100,
+                    dragOffset: config.dragOffset
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+            } catch (err) {
+                // Ignore storage errors in restricted contexts
+            }
+        }
+
+        function loadWidgetPreferences() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return;
+                const prefs = JSON.parse(raw);
+
+                if (typeof prefs.lat === 'number' && typeof prefs.lng === 'number') {
+                    config.lat = prefs.lat;
+                    config.lng = prefs.lng;
+                }
+                if (prefs.locationName) {
+                    config.locationName = prefs.locationName;
+                    const locText = document.getElementById('location-text');
+                    if (locText) locText.textContent = prefs.locationName;
+                }
+                if (prefs.idleOpacity) {
+                    const v = parseInt(prefs.idleOpacity, 10);
+                    document.getElementById('idle-opacity-slider').value = v;
+                    document.getElementById('idle-opacity-val').textContent = `${v}%`;
+                    document.documentElement.style.setProperty('--idle-opacity', (v / 100).toFixed(2));
+                }
+                if (prefs.activeOpacity) {
+                    const v = parseInt(prefs.activeOpacity, 10);
+                    document.getElementById('active-opacity-slider').value = v;
+                    document.getElementById('active-opacity-val').textContent = `${v}%`;
+                    document.documentElement.style.setProperty('--active-opacity', (v / 100).toFixed(2));
+                }
+                if (prefs.glassTint) {
+                    const v = parseInt(prefs.glassTint, 10);
+                    document.getElementById('glass-tint-slider').value = v;
+                    document.getElementById('glass-tint-val').textContent = `${v}%`;
+                    document.documentElement.style.setProperty('--glass-tint', (v / 100).toFixed(2));
+                }
+                if (prefs.widgetScale) {
+                    const v = parseInt(prefs.widgetScale, 10);
+                    document.getElementById('widget-scale-slider').value = v;
+                    document.getElementById('widget-scale-val').textContent = `${v}%`;
+                    document.documentElement.style.setProperty('--widget-scale', (v / 100).toFixed(2));
+                }
+                if (prefs.ghostChromeOnIdle) {
+                    config.ghostChromeOnIdle = true;
+                    widgetContainer.classList.add('ghost-chrome');
+                    document.getElementById('toggle-ghost-chrome')?.classList.add('active');
+                    const dockGhost = document.getElementById('dock-ghost-btn');
+                    if (dockGhost) {
+                        dockGhost.classList.add('active');
+                        dockGhost.textContent = 'Ghost Mode: On';
+                    }
+                }
+                if (prefs.frameless) {
+                    widgetContainer.classList.add('frameless-mode');
+                    document.getElementById('toggle-frameless')?.classList.add('active');
+                }
+                if (prefs.dragOffset && typeof prefs.dragOffset.x === 'number') {
+                    config.dragOffset = prefs.dragOffset;
+                    widgetStage.style.transform = `translate(${config.dragOffset.x}px, ${config.dragOffset.y}px) scale(var(--widget-scale))`;
+                }
+                if (prefs.layoutMode) {
+                    applyLayoutMode(prefs.layoutMode);
+                }
+            } catch (err) {
+                // Ignore corrupt storage
+            }
+        }
+
+        function getCleanSnapshotHtml(forDesktopApp = false) {
+            const clone = document.documentElement.cloneNode(true);
+            const modal = clone.querySelector('#exe-modal-backdrop');
+            if (modal) modal.classList.remove('open');
+            const studio = clone.querySelector('#studio-panel');
+            if (studio) studio.classList.remove('open');
+            if (forDesktopApp) {
+                const body = clone.querySelector('body');
+                if (body) body.classList.add('native-desktop-app');
+            }
+            return '<!DOCTYPE html>\r\n' + clone.outerHTML;
+        }
+
+        function triggerFileDownload(filename, content, mimeType = 'text/plain;charset=utf-8') {
+            // Ensure Windows CRLF line endings for .bat files
+            const normalized = filename.endsWith('.bat') ? content.replace(/\r?\n/g, '\r\n') : content;
+            const blob = new Blob([normalized], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 4000);
+        }
+
+        function toBase64Utf8(str) {
+            const bytes = new TextEncoder().encode(str);
+            let binary = '';
+            const chunkSize = 0x8000;
+            for (let i = 0; i < bytes.length; i += chunkSize) {
+                binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+            }
+            return btoa(binary);
+        }
+
+        function getFramelessCompilerPsScript(useLocalHtmlSearch) {
+            const htmlLoadBlock = useLocalHtmlSearch ? `
+    $src = Join-Path $env:USERPROFILE "Downloads\\SolarLunarWidget.html"
+    if (-not (Test-Path $src)) {
+        $found = Get-ChildItem -Path (Join-Path $env:USERPROFILE "Downloads") -Filter "SolarLunarWidget*.html" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+        if ($found) { $src = $found.FullName }
+    }
+    if (-not (Test-Path $src)) { $src = Join-Path ([Environment]::GetFolderPath('Desktop')) "SolarLunarWidget.html" }
+    if (-not (Test-Path $src)) { throw "Could not find SolarLunarWidget.html in Downloads or Desktop. Please click '1. Get .HTML' first!" }
+    Copy-Item -Path $src -Destination $htmlPath -Force
+    Write-Host "      -> Loaded HTML from: $src" -ForegroundColor Gray` : `
+    $htmlBytes = [System.Convert]::FromBase64String($global:WIDGET_B64)
+    [System.IO.File]::WriteAllBytes($htmlPath, $htmlBytes)
+    Write-Host "      -> Extracted embedded UI ($($htmlBytes.Length) bytes)" -ForegroundColor Gray`;
+
+            return `$ErrorActionPreference = 'Stop'
+try {
+    Write-Host "=====================================================================" -ForegroundColor Cyan
+    Write-Host "  SOLAR & LUNAR DIAL - FRAMELESS WINDOWS 11 WIDGET COMPILER (v3)" -ForegroundColor Cyan
+    Write-Host "=====================================================================" -ForegroundColor Cyan
+    Write-Host ""
+
+    Stop-Process -Name "SolarLunarWidget" -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Milliseconds 300
+
+    $appDir = Join-Path $env:LOCALAPPDATA "SolarLunarWidget"
+    New-Item -ItemType Directory -Force -Path $appDir | Out-Null
+    $htmlPath = Join-Path $appDir "solar-lunar-dial.html"
+
+    Write-Host "[1/5] Preparing Widget UI..." -ForegroundColor Yellow${htmlLoadBlock}
+
+    Write-Host "[2/5] Preparing Microsoft WebView2 Frameless Host Libraries..." -ForegroundColor Yellow
+    $wvCoreDll = Join-Path $appDir "Microsoft.Web.WebView2.Core.dll"
+    $wvWinFormsDll = Join-Path $appDir "Microsoft.Web.WebView2.WinForms.dll"
+    $wvLoaderDll = Join-Path $appDir "WebView2Loader.dll"
+
+    if (-not ((Test-Path $wvCoreDll) -and (Test-Path $wvWinFormsDll) -and (Test-Path $wvLoaderDll))) {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        $nupkgZip = Join-Path $appDir "wv2.zip"
+        $nupkgDir = Join-Path $appDir "wv2_pkg"
+        Write-Host "      -> Downloading official Microsoft.Web.WebView2 package (~1 MB)..." -ForegroundColor Gray
+        Invoke-WebRequest -Uri "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2" -OutFile $nupkgZip -UseBasicParsing
+        if (Test-Path $nupkgDir) { Remove-Item $nupkgDir -Recurse -Force }
+        Expand-Archive -Path $nupkgZip -DestinationPath $nupkgDir -Force
+
+        $coreFound = Get-ChildItem -Path (Join-Path $nupkgDir "lib") -Recurse -Filter "Microsoft.Web.WebView2.Core.dll" | Select-Object -First 1
+        $winFormsFound = Get-ChildItem -Path (Join-Path $nupkgDir "lib") -Recurse -Filter "Microsoft.Web.WebView2.WinForms.dll" | Select-Object -First 1
+        $archFolder = if ([Environment]::Is64BitOperatingSystem) { "win-x64" } else { "win-x86" }
+        $loaderFound = Get-ChildItem -Path (Join-Path $nupkgDir "runtimes\\$archFolder") -Recurse -Filter "WebView2Loader.dll" | Select-Object -First 1
+
+        Copy-Item $coreFound.FullName $wvCoreDll -Force
+        Copy-Item $winFormsFound.FullName $wvWinFormsDll -Force
+        Copy-Item $loaderFound.FullName $wvLoaderDll -Force
+        Remove-Item $nupkgZip -Force -ErrorAction SilentlyContinue
+        Write-Host "      -> WebView2 libraries ready" -ForegroundColor Gray
+    } else {
+        Write-Host "      -> Using cached WebView2 libraries" -ForegroundColor Gray
+    }
+
+    Write-Host "[3/5] Generating custom Windows 11 .ICO icon..." -ForegroundColor Yellow
+    $icoPath = Join-Path $appDir "SolarLunarWidget.ico"
+    $hasIcon = $false
+    try {
+        Add-Type -AssemblyName System.Drawing
+        $bmp = New-Object System.Drawing.Bitmap(64, 64)
+        $g = [System.Drawing.Graphics]::FromImage($bmp)
+        $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+        $bgBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 8, 15, 38))
+        $g.FillEllipse($bgBrush, 2, 2, 60, 60)
+        $ringPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(220, 56, 189, 248), 3)
+        $g.DrawEllipse($ringPen, 3, 3, 58, 58)
+        $sunBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 251, 191, 36))
+        $g.FillEllipse($sunBrush, 18, 18, 28, 28)
+        $g.Dispose()
+
+        $ms = New-Object System.IO.MemoryStream
+        $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
+        $pngBytes = $ms.ToArray()
+        $ms.Dispose()
+        $bmp.Dispose()
+
+        $icoMem = New-Object System.IO.MemoryStream
+        $bw = New-Object System.IO.BinaryWriter($icoMem)
+        $bw.Write([byte[]](0,0, 1,0, 1,0))
+        $bw.Write([byte]64)
+        $bw.Write([byte]64)
+        $bw.Write([byte]0)
+        $bw.Write([byte]0)
+        $bw.Write([uint16]1)
+        $bw.Write([uint16]32)
+        $bw.Write([uint32]$pngBytes.Length)
+        $bw.Write([uint32]22)
+        $bw.Write($pngBytes)
+        $bw.Flush()
+        [System.IO.File]::WriteAllBytes($icoPath, $icoMem.ToArray())
+        $bw.Dispose()
+        $hasIcon = $true
+    } catch {
+        $hasIcon = $false
+    }
+
+    Write-Host "[4/5] Compiling borderless FramelessSolarWidget.exe..." -ForegroundColor Yellow
+    $csCode = @'
+using System;
+using System.Drawing;
+using System.Globalization;
+using System.IO;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.WinForms;
+
+static class Program {
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    static extern bool SetDllDirectory(string lpPathName);
+
+    [DllImport("user32.dll")]
+    static extern bool SetProcessDPIAware();
+
+    static string appDir;
+
+    [STAThread]
+    static void Main() {
+        SetProcessDPIAware();
+        appDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SolarLunarWidget");
+        Directory.CreateDirectory(appDir);
+        SetDllDirectory(appDir);
+        AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(OnResolveAssembly);
+        Application.EnableVisualStyles();
+        Application.SetCompatibleTextRenderingDefault(false);
+        LaunchWidget();
+    }
+
+    static Assembly OnResolveAssembly(object sender, ResolveEventArgs args) {
+        string dllName = new AssemblyName(args.Name).Name + ".dll";
+        string fullPath = Path.Combine(appDir, dllName);
+        if (File.Exists(fullPath)) {
+            return Assembly.LoadFrom(fullPath);
+        }
+        return null;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static void LaunchWidget() {
+        Application.Run(new FramelessWidgetForm(appDir));
+    }
+}
+
+public class FramelessWidgetForm : Form {
+    [DllImport("user32.dll")]
+    static extern bool ReleaseCapture();
+
+    [DllImport("user32.dll")]
+    static extern IntPtr SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+
+    [DllImport("gdi32.dll")]
+    static extern IntPtr CreateRoundRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nWidthEllipse, int nHeightEllipse);
+
+    [DllImport("user32.dll")]
+    static extern int SetWindowRgn(IntPtr hWnd, IntPtr hRgn, bool bRedraw);
+
+    private string appDir;
+    private string htmlPath;
+    private string posFile;
+    private WebView2 webView;
+    private Timer animTimer;
+    private NotifyIcon trayIcon;
+    private double targetOpacity = 0.96;
+    private int cornerRadius = 92;
+    private bool lastHoverState = true;
+    private bool isWebViewReady = false;
+
+    public FramelessWidgetForm(string dir) {
+        this.appDir = dir;
+        this.htmlPath = Path.Combine(dir, "solar-lunar-dial.html");
+        this.posFile = Path.Combine(dir, "window_pos.txt");
+
+        using (Stream s = Assembly.GetExecutingAssembly().GetManifestResourceStream("widget.html")) {
+            if (s != null) {
+                using (FileStream fs = new FileStream(this.htmlPath, FileMode.Create, FileAccess.Write)) {
+                    s.CopyTo(fs);
+                }
+            }
+        }
+
+        this.Text = "Solar & Lunar Dial Widget";
+        this.FormBorderStyle = FormBorderStyle.None;
+        this.BackColor = Color.FromArgb(6, 13, 31);
+        this.Size = new Size(400, 588);
+        this.ShowInTaskbar = false;
+        this.DoubleBuffered = true;
+        this.Opacity = 0.96;
+
+        string icoFile = Path.Combine(dir, "SolarLunarWidget.ico");
+        if (File.Exists(icoFile)) {
+            try { this.Icon = new Icon(icoFile); } catch { }
+        }
+
+        LoadWindowPosition();
+        ApplyRoundedCorners(this.Width, this.Height, this.cornerRadius);
+
+        SetupTrayIcon();
+        InitWebView();
+
+        this.animTimer = new Timer();
+        this.animTimer.Interval = 30;
+        this.animTimer.Tick += new EventHandler(OnTick);
+        this.animTimer.Start();
+    }
+
+    protected override CreateParams CreateParams {
+        get {
+            CreateParams cp = base.CreateParams;
+            cp.ExStyle |= 0x00000080; // WS_EX_TOOLWINDOW: hides from Alt+Tab like a true desktop gadget
+            return cp;
+        }
+    }
+
+    private void SetupTrayIcon() {
+        this.trayIcon = new NotifyIcon();
+        this.trayIcon.Text = "Solar & Lunar Dial Widget";
+        this.trayIcon.Icon = this.Icon != null ? this.Icon : SystemIcons.Application;
+        this.trayIcon.Visible = true;
+
+        ContextMenu menu = new ContextMenu();
+        MenuItem topItem = new MenuItem("Always on Top");
+        topItem.Click += delegate(object s, EventArgs e) {
+            this.TopMost = !this.TopMost;
+            topItem.Checked = this.TopMost;
+        };
+        MenuItem centerItem = new MenuItem("Center on Screen");
+        centerItem.Click += delegate(object s, EventArgs e) {
+            Rectangle wa = Screen.PrimaryScreen.WorkingArea;
+            this.Location = new Point((wa.Width - this.Width) / 2, (wa.Height - this.Height) / 2);
+            SaveWindowPosition();
+        };
+        MenuItem exitItem = new MenuItem("Exit Widget");
+        exitItem.Click += delegate(object s, EventArgs e) {
+            this.trayIcon.Visible = false;
+            Application.Exit();
+        };
+
+        menu.MenuItems.Add(topItem);
+        menu.MenuItems.Add(centerItem);
+        menu.MenuItems.Add("-");
+        menu.MenuItems.Add(exitItem);
+        this.trayIcon.ContextMenu = menu;
+    }
+
+    private void ApplyRoundedCorners(int w, int h, int r) {
+        IntPtr hRgn = CreateRoundRectRgn(0, 0, w + 1, h + 1, r, r);
+        SetWindowRgn(this.Handle, hRgn, true);
+    }
+
+    private async void InitWebView() {
+        try {
+            this.webView = new WebView2();
+            this.webView.Dock = DockStyle.Fill;
+            this.webView.DefaultBackgroundColor = Color.Transparent;
+            this.Controls.Add(this.webView);
+
+            string userDataDir = Path.Combine(this.appDir, "WV2Profile");
+            CoreWebView2Environment env = await CoreWebView2Environment.CreateAsync(null, userDataDir);
+            await this.webView.EnsureCoreWebView2Async(env);
+
+            this.webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
+            this.webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
+            this.webView.CoreWebView2.WebMessageReceived += new EventHandler<CoreWebView2WebMessageReceivedEventArgs>(OnWebMessage);
+
+            string url = new Uri(this.htmlPath).AbsoluteUri + "?desktop=1";
+            this.webView.CoreWebView2.Navigate(url);
+            this.isWebViewReady = true;
+        } catch (Exception ex) {
+            MessageBox.Show("WebView2 initialization error: " + ex.Message, "Solar & Lunar Widget", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void OnWebMessage(object sender, CoreWebView2WebMessageReceivedEventArgs e) {
+        string msg = e.TryGetWebMessageAsString();
+        if (string.IsNullOrEmpty(msg)) return;
+
+        if (msg == "drag") {
+            ReleaseCapture();
+            SendMessage(this.Handle, 0xA1, 0x2, 0);
+            SaveWindowPosition();
+        } else if (msg == "close") {
+            this.trayIcon.Visible = false;
+            Application.Exit();
+        } else if (msg.StartsWith("pin:")) {
+            this.TopMost = (msg == "pin:1");
+        } else if (msg.StartsWith("opacity:")) {
+            double val;
+            if (double.TryParse(msg.Substring(8), NumberStyles.Any, CultureInfo.InvariantCulture, out val)) {
+                this.targetOpacity = Math.Max(0.10, Math.Min(1.0, val));
+            }
+        } else if (msg.StartsWith("resize:")) {
+            string[] parts = msg.Substring(7).Split(',');
+            if (parts.Length >= 3) {
+                int w, h, r;
+                if (int.TryParse(parts[0], out w) && int.TryParse(parts[1], out h) && int.TryParse(parts[2], out r)) {
+                    if (w > 100 && h > 100 && (Math.Abs(this.Width - w) > 2 || Math.Abs(this.Height - h) > 2 || this.cornerRadius != r)) {
+                        this.cornerRadius = r;
+                        this.Size = new Size(w, h);
+                        ApplyRoundedCorners(w, h, r);
+                    }
+                }
+            }
+        }
+    }
+
+    private void OnTick(object sender, EventArgs e) {
+        double diff = this.targetOpacity - this.Opacity;
+        if (Math.Abs(diff) > 0.008) {
+            this.Opacity += diff * 0.22;
+        } else {
+            this.Opacity = this.targetOpacity;
+        }
+
+        if (this.isWebViewReady && this.webView != null && this.webView.CoreWebView2 != null) {
+            bool isHover = this.Bounds.Contains(Cursor.Position);
+            if (isHover != this.lastHoverState) {
+                this.lastHoverState = isHover;
+                this.webView.CoreWebView2.ExecuteScriptAsync("if(window.setDesktopHoverState) window.setDesktopHoverState(" + (isHover ? "true" : "false") + ");");
+            }
+        }
+    }
+
+    private void LoadWindowPosition() {
+        try {
+            if (File.Exists(this.posFile)) {
+                string[] parts = File.ReadAllText(this.posFile).Trim().Split(',');
+                int x, y;
+                if (parts.Length == 2 && int.TryParse(parts[0], out x) && int.TryParse(parts[1], out y)) {
+                    this.StartPosition = FormStartPosition.Manual;
+                    this.Location = new Point(x, y);
+                    return;
+                }
+            }
+        } catch { }
+        Rectangle wa = Screen.PrimaryScreen.WorkingArea;
+        this.StartPosition = FormStartPosition.Manual;
+        this.Location = new Point(wa.Right - this.Width - 40, wa.Top + 40);
+    }
+
+    private void SaveWindowPosition() {
+        try {
+            File.WriteAllText(this.posFile, this.Left.ToString() + "," + this.Top.ToString());
+        } catch { }
+    }
+}
+'@
+    $csPath = Join-Path $appDir "FramelessSolarWidget.cs"
+    [System.IO.File]::WriteAllText($csPath, $csCode)
+
+    $csc = Join-Path $env:WINDIR "Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe"
+    if (-not (Test-Path $csc)) {
+        $csc = Join-Path $env:WINDIR "Microsoft.NET\\Framework\\v4.0.30319\\csc.exe"
+    }
+
+    $localExe = Join-Path $appDir "SolarLunarWidget.exe"
+    $resArg = '/resource:"' + $htmlPath + '",widget.html'
+    $outArg = '/out:"' + $localExe + '"'
+    $rCore = '/r:"' + $wvCoreDll + '"'
+    $rWinForms = '/r:"' + $wvWinFormsDll + '"'
+
+    if ($hasIcon -and (Test-Path $icoPath)) {
+        $icoArg = '/win32icon:"' + $icoPath + '"'
+        & $csc /nologo /target:winexe /platform:x64 $outArg $icoArg $resArg /r:System.Windows.Forms.dll /r:System.Drawing.dll $rCore $rWinForms "$csPath"
+    } else {
+        & $csc /nologo /target:winexe /platform:x64 $outArg $resArg /r:System.Windows.Forms.dll /r:System.Drawing.dll $rCore $rWinForms "$csPath"
+    }
+
+    if (-not (Test-Path $localExe)) {
+        throw "Compilation did not produce SolarLunarWidget.exe."
+    }
+
+    $desktopDir = [Environment]::GetFolderPath('Desktop')
+    $desktopExe = Join-Path $desktopDir "SolarLunarWidget.exe"
+    Copy-Item -Path $localExe -Destination $desktopExe -Force
+
+    Write-Host "[5/5] Launching Frameless SolarLunarWidget.exe..." -ForegroundColor Cyan
+    Start-Process $desktopExe
+    Write-Host ""
+    Write-Host "SUCCESS! Borderless SolarLunarWidget.exe is now floating on your Desktop!" -ForegroundColor Green
+} catch {
+    Write-Host ""
+    Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
+}`;
+        }
+
+        function buildNativeWin11BatScript() {
+            const htmlSource = getCleanSnapshotHtml(true);
+            const b64Html = toBase64Utf8(htmlSource);
+            const psScript = getFramelessCompilerPsScript(false);
+
+            return `@echo off
+title Solar ^& Lunar Dial - Frameless Windows 11 Widget Compiler (v3)
+color 0B
+set "SELF_FILE=%~f0"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$raw = [System.IO.File]::ReadAllText($env:SELF_FILE); $d1 = '::' + '___PS_START___'; $d2 = '#___' + 'B64_START___'; $i1 = $raw.IndexOf($d1) + $d1.Length; $i2 = $raw.IndexOf($d2); $ps = $raw.Substring($i1, $i2 - $i1); $global:WIDGET_B64 = $raw.Substring($i2 + $d2.Length).Trim(); Invoke-Expression $ps"
+echo.
+pause
+exit /b
+::___PS_START___
+${psScript}
+#___B64_START___
+${b64Html}
+`;
+        }
+
+        function buildPowerShellOneLiner() {
+            return getFramelessCompilerPsScript(true);
+        }
+
+        function buildElectronOverlayBatScript() {
+            const htmlSource = getCleanSnapshotHtml(true);
+            const b64Html = toBase64Utf8(htmlSource);
+
+            return `@echo off
+title Solar ^& Lunar Dial - Transparent Electron .EXE Builder (v2)
+color 0B
+set "SELF_FILE=%~f0"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$raw = [System.IO.File]::ReadAllText($env:SELF_FILE); $d1 = '::' + '___PS_START___'; $d2 = '#___' + 'B64_START___'; $i1 = $raw.IndexOf($d1) + $d1.Length; $i2 = $raw.IndexOf($d2); $ps = $raw.Substring($i1, $i2 - $i1); $global:WIDGET_B64 = $raw.Substring($i2 + $d2.Length).Trim(); Invoke-Expression $ps"
+echo.
+pause
+exit /b
+::___PS_START___
+$ErrorActionPreference = 'Stop'
+try {
+    Write-Host "=====================================================================" -ForegroundColor Cyan
+    Write-Host "  TRUE TRANSPARENT FRAMELESS DESKTOP WIDGET (.EXE) BUILDER" -ForegroundColor Cyan
+    Write-Host "=====================================================================" -ForegroundColor Cyan
+    if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+        Write-Host "[!] Node.js / npm is not installed on this PC." -ForegroundColor Red
+        Write-Host "    Please use Option 1 (Instant Windows 11 .EXE Installer) which needs zero extra software," -ForegroundColor Yellow
+        Write-Host "    or install Node.js LTS from https://nodejs.org to build an Electron overlay." -ForegroundColor Yellow
+        return
+    }
+    $dir = Join-Path $env:LOCALAPPDATA "SolarLunarOverlay"
+    New-Item -ItemType Directory -Force -Path $dir | Out-Null
+    $html = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($global:WIDGET_B64))
+    $html = $html.Replace('<body>', '<body class="bg-transparent-mode native-desktop-app">')
+    [System.IO.File]::WriteAllText((Join-Path $dir "index.html"), $html)
+    [System.IO.File]::WriteAllText((Join-Path $dir "package.json"), '{"name":"solar-lunar-widget","version":"1.0.0","main":"main.js"}')
+    $mainJs = @'
+const { app, BrowserWindow } = require("electron");
+app.whenReady().then(() => {
+  const win = new BrowserWindow({
+    width: 440, height: 670,
+    transparent: true, frame: false, resizable: true, hasShadow: false
+  });
+  win.loadFile("index.html");
+});
+'@
+    [System.IO.File]::WriteAllText((Join-Path $dir "main.js"), $mainJs)
+    Set-Location $dir
+    Write-Host "[1/2] Installing Electron packager..." -ForegroundColor Yellow
+    npm install --save-dev electron @electron/packager
+    $desk = [Environment]::GetFolderPath('Desktop')
+    Write-Host "[2/2] Packaging SolarLunarWidget.exe to Desktop..." -ForegroundColor Yellow
+    npx @electron/packager . SolarLunarWidget --platform=win32 --arch=x64 --out="$desk" --overwrite
+    $exePath = Join-Path $desk "SolarLunarWidget-win32-x64\SolarLunarWidget.exe"
+    if (Test-Path $exePath) {
+        Start-Process $exePath
+        Write-Host "SUCCESS! Launched $exePath" -ForegroundColor Green
+    }
+} catch {
+    Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
+}
+#___B64_START___
+${b64Html}
+`;
+        }
+
+        function initWidgetStudio() {
+            const studioPanel = document.getElementById('studio-panel');
+            const openStudioBtn = document.getElementById('open-studio-btn');
+            const closeStudioBtn = document.getElementById('close-studio-btn');
+            const dockStudioBtn = document.getElementById('dock-studio-btn');
+            const quickLayoutBtn = document.getElementById('quick-layout-btn');
+            const dockLayoutBtn = document.getElementById('dock-layout-btn');
+            const dockGhostBtn = document.getElementById('dock-ghost-btn');
+            const toggleGhostChromeBtn = document.getElementById('toggle-ghost-chrome');
+            const toggleFramelessBtn = document.getElementById('toggle-frameless');
+
+            // EXE Modal Elements
+            const exeModalBackdrop = document.getElementById('exe-modal-backdrop');
+            const dockExeBtn = document.getElementById('dock-exe-btn');
+            const studioExeBtn = document.getElementById('studio-exe-btn');
+            const closeExeModalBtn = document.getElementById('close-exe-modal-btn');
+            const downloadNativeExeBtn = document.getElementById('download-native-exe-btn');
+            const downloadElectronExeBtn = document.getElementById('download-electron-exe-btn');
+            const downloadStandaloneHtmlBtn = document.getElementById('download-standalone-html-btn');
+            const copyPsCompilerBtn = document.getElementById('copy-ps-compiler-btn');
+            const exeStatusMsg = document.getElementById('exe-status-msg');
+
+            function showExeStatus(text) {
+                if (!exeStatusMsg) return;
+                exeStatusMsg.textContent = text;
+                exeStatusMsg.classList.remove('hidden');
+            }
+
+            if (dockExeBtn) dockExeBtn.addEventListener('click', () => exeModalBackdrop.classList.add('open'));
+            if (studioExeBtn) studioExeBtn.addEventListener('click', () => exeModalBackdrop.classList.add('open'));
+            if (closeExeModalBtn) closeExeModalBtn.addEventListener('click', () => exeModalBackdrop.classList.remove('open'));
+            if (exeModalBackdrop) {
+                exeModalBackdrop.addEventListener('click', (e) => {
+                    if (e.target === exeModalBackdrop) exeModalBackdrop.classList.remove('open');
+                });
+            }
+
+            if (downloadNativeExeBtn) {
+                downloadNativeExeBtn.addEventListener('click', () => {
+                    const batContent = buildNativeWin11BatScript();
+                    triggerFileDownload('Install-SolarLunarWidget.bat', batContent);
+                    showExeStatus('✓ Downloaded v2 Install-SolarLunarWidget.bat! It will place SolarLunarWidget.exe both in the same folder and on your Desktop.');
+                });
+            }
+
+            if (copyPsCompilerBtn) {
+                copyPsCompilerBtn.addEventListener('click', () => {
+                    const cmd = buildPowerShellOneLiner();
+                    const ta = document.createElement('textarea');
+                    ta.value = cmd;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    showExeStatus('✓ Copied PowerShell Compiler command! After downloading SolarLunarWidget.html (Step 1), paste this command into Windows PowerShell and press Enter.');
+                });
+            }
+
+            if (downloadElectronExeBtn) {
+                downloadElectronExeBtn.addEventListener('click', () => {
+                    const batContent = buildElectronOverlayBatScript();
+                    triggerFileDownload('Build-Transparent-SolarWidget-EXE.bat', batContent);
+                    showExeStatus('✓ Downloaded v2 Build-Transparent-SolarWidget-EXE.bat! Run it on your PC (requires Node.js) to package a frameless transparent .EXE.');
+                });
+            }
+
+            if (downloadStandaloneHtmlBtn) {
+                downloadStandaloneHtmlBtn.addEventListener('click', () => {
+                    const htmlContent = getCleanSnapshotHtml(true);
+                    triggerFileDownload('SolarLunarWidget.html', htmlContent, 'text/html;charset=utf-8');
+                    showExeStatus('✓ Downloaded SolarLunarWidget.html! Now click "2. Copy PS Command" above and paste it into PowerShell to build SolarLunarWidget.exe.');
+                });
+            }
+
+            function toggleStudio(forceState) {
+                const isOpen = typeof forceState === 'boolean' ? forceState : !studioPanel.classList.contains('open');
+                studioPanel.classList.toggle('open', isOpen);
+                widgetContainer.classList.toggle('settings-open', isOpen);
+                openStudioBtn.classList.toggle('active', isOpen);
+                if (isOpen) setWidgetIdleState(false);
+                syncNativeHostSize();
+            }
+
+            openStudioBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleStudio(); });
+            closeStudioBtn.addEventListener('click', () => toggleStudio(false));
+            dockStudioBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleStudio(); });
+
+            // Pin Always-on-Top & Close Widget buttons for Native Desktop App Mode
+            const pinTopBtn = document.getElementById('pin-top-btn');
+            const closeWidgetBtn = document.getElementById('close-widget-btn');
+            let isPinnedTop = false;
+            if (pinTopBtn) {
+                pinTopBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    isPinnedTop = !isPinnedTop;
+                    pinTopBtn.classList.toggle('active', isPinnedTop);
+                    postToNativeHost('pin:' + (isPinnedTop ? '1' : '0'));
+                });
+            }
+            if (closeWidgetBtn) {
+                closeWidgetBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    postToNativeHost('close');
+                });
+            }
+
+            // Hover-to-Wake / Idle-Fade Listeners
+            function handlePointerEnter() {
+                config.isPointerOverWidget = true;
+                clearTimeout(config.idleTimer);
+                setWidgetIdleState(false);
+            }
+
+            function handlePointerLeave() {
+                config.isPointerOverWidget = false;
+                clearTimeout(config.idleTimer);
+                config.idleTimer = setTimeout(() => {
+                    const isInputFocused = document.activeElement === document.getElementById('location-input') ||
+                                           document.activeElement === datePicker;
+                    if (!config.isPointerOverWidget && !config.isDragging && !studioPanel.classList.contains('open') && !isInputFocused) {
+                        setWidgetIdleState(true);
+                    }
+                }, 450);
+            }
+
+            widgetContainer.addEventListener('mouseenter', handlePointerEnter);
+            widgetContainer.addEventListener('mouseleave', handlePointerLeave);
+            studioPanel.addEventListener('mouseenter', handlePointerEnter);
+            studioPanel.addEventListener('mouseleave', handlePointerLeave);
+
+            // Layout Preset Buttons
+            const layoutsOrder = ['full', 'deskbar', 'compact', 'orb'];
+            document.querySelectorAll('#layout-presets .preset-btn').forEach(btn => {
+                btn.addEventListener('click', () => applyLayoutMode(btn.dataset.layout));
+            });
+
+            function cycleLayout() {
+                const nextIdx = (layoutsOrder.indexOf(config.layoutMode) + 1) % layoutsOrder.length;
+                applyLayoutMode(layoutsOrder[nextIdx]);
+            }
+            quickLayoutBtn.addEventListener('click', cycleLayout);
+            dockLayoutBtn.addEventListener('click', cycleLayout);
+
+            // Sliders: Idle Opacity, Active Opacity, Glass Tint, and Scale
+            const idleSlider = document.getElementById('idle-opacity-slider');
+            const idleVal = document.getElementById('idle-opacity-val');
+            idleSlider.addEventListener('input', (e) => {
+                const v = parseInt(e.target.value, 10);
+                idleVal.textContent = `${v}%`;
+                document.documentElement.style.setProperty('--idle-opacity', (v / 100).toFixed(2));
+                // Briefly preview idle opacity while dragging slider
+                widgetContainer.classList.add('is-idle');
+                clearTimeout(config.idleTimer);
+                config.idleTimer = setTimeout(() => {
+                    if (config.isPointerOverWidget) widgetContainer.classList.remove('is-idle');
+                }, 900);
+                saveWidgetPreferences();
+            });
+
+            const activeSlider = document.getElementById('active-opacity-slider');
+            const activeVal = document.getElementById('active-opacity-val');
+            activeSlider.addEventListener('input', (e) => {
+                const v = parseInt(e.target.value, 10);
+                activeVal.textContent = `${v}%`;
+                document.documentElement.style.setProperty('--active-opacity', (v / 100).toFixed(2));
+                widgetContainer.classList.remove('is-idle');
+                saveWidgetPreferences();
+            });
+
+            const tintSlider = document.getElementById('glass-tint-slider');
+            const tintVal = document.getElementById('glass-tint-val');
+            tintSlider.addEventListener('input', (e) => {
+                const v = parseInt(e.target.value, 10);
+                tintVal.textContent = `${v}%`;
+                document.documentElement.style.setProperty('--glass-tint', (v / 100).toFixed(2));
+                saveWidgetPreferences();
+            });
+
+            const scaleSlider = document.getElementById('widget-scale-slider');
+            const scaleVal = document.getElementById('widget-scale-val');
+            scaleSlider.addEventListener('input', (e) => {
+                const v = parseInt(e.target.value, 10);
+                scaleVal.textContent = `${v}%`;
+                document.documentElement.style.setProperty('--widget-scale', (v / 100).toFixed(2));
+                saveWidgetPreferences();
+                syncNativeHostSize();
+            });
+
+            // Show/Hide Individual UI Module Chips
+            const complicationsRow = document.getElementById('section-complications');
+            document.querySelectorAll('.toggle-chip[data-toggle]').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    chip.classList.toggle('active');
+                    const isOn = chip.classList.contains('active');
+                    const target = chip.dataset.toggle;
+
+                    if (target === 'header') {
+                        document.getElementById('section-header').classList.toggle('section-hidden', !isOn);
+                    } else if (target === 'weather') {
+                        document.getElementById('location-complication').classList.toggle('section-hidden', !isOn);
+                    } else if (target === 'date') {
+                        document.getElementById('date-complication').classList.toggle('section-hidden', !isOn);
+                    } else if (target === 'telemetry') {
+                        document.getElementById('section-telemetry').classList.toggle('section-hidden', !isOn);
+                    } else if (target === 'footer') {
+                        document.getElementById('section-footer').classList.toggle('section-hidden', !isOn);
+                    }
+
+                    // Adjust complications grid if only 1 card is visible
+                    const weatherHidden = document.getElementById('location-complication').classList.contains('section-hidden');
+                    const dateHidden = document.getElementById('date-complication').classList.contains('section-hidden');
+                    complicationsRow.classList.toggle('section-hidden', weatherHidden && dateHidden);
+                    complicationsRow.classList.toggle('single-col', weatherHidden !== dateHidden);
+                    syncNativeHostSize();
+                });
+            });
+
+            // Ghost Chrome on Idle Toggle
+            function toggleGhostChrome() {
+                config.ghostChromeOnIdle = !config.ghostChromeOnIdle;
+                widgetContainer.classList.toggle('ghost-chrome', config.ghostChromeOnIdle);
+                toggleGhostChromeBtn.classList.toggle('active', config.ghostChromeOnIdle);
+                dockGhostBtn.classList.toggle('active', config.ghostChromeOnIdle);
+                dockGhostBtn.textContent = `Ghost Mode: ${config.ghostChromeOnIdle ? 'On' : 'Off'}`;
+                saveWidgetPreferences();
+                syncNativeHostSize();
+            }
+            toggleGhostChromeBtn.addEventListener('click', toggleGhostChrome);
+            dockGhostBtn.addEventListener('click', toggleGhostChrome);
+
+            // Frameless Glass Mode Toggle
+            toggleFramelessBtn.addEventListener('click', () => {
+                const isFrameless = widgetContainer.classList.toggle('frameless-mode');
+                toggleFramelessBtn.classList.toggle('active', isFrameless);
+                saveWidgetPreferences();
+            });
+            // Desktop Widget Dragging (via Top Handle or any non-interactive widget surface in Native Desktop Mode)
+            const dragHandle = document.getElementById('widget-drag-handle');
+            let isMovingWidget = false;
+            let moveStart = { x: 0, y: 0 };
+
+            dragHandle.addEventListener('mousedown', (e) => {
+                if (document.body.classList.contains('native-desktop-app')) {
+                    postToNativeHost('drag');
+                    return;
+                }
+                isMovingWidget = true;
+                moveStart = { x: e.clientX - config.dragOffset.x, y: e.clientY - config.dragOffset.y };
+                widgetStage.style.transition = 'none';
+            });
+
+            // Allow dragging from any background surface of the widget when running as a frameless desktop app
+            widgetContainer.addEventListener('mousedown', (e) => {
+                if (!document.body.classList.contains('native-desktop-app')) return;
+                const interactive = e.target.closest('canvas, button, input, .telemetry-item, #location-text, #gps-btn, .resize-grip, .studio-panel');
+                if (!interactive) {
+                    postToNativeHost('drag');
+                }
+            });
+
+            dragHandle.addEventListener('dblclick', () => {
+                config.dragOffset = { x: 0, y: 0 };
+                widgetStage.style.transition = 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)';
+                widgetStage.style.transform = `translate(0px, 0px) scale(var(--widget-scale))`;
+            });
+
+            // Live Corner Resize Grip (Scales & Auto-Adapts Form Factor)
+            const resizeGrip = document.getElementById('resize-grip');
+            let isResizingWidget = false;
+            let resizeStart = { x: 0, y: 0, scale: 1 };
+
+            resizeGrip.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                isResizingWidget = true;
+                const currentScale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--widget-scale')) || 1;
+                resizeStart = { x: e.clientX, y: e.clientY, scale: currentScale };
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (isMovingWidget) {
+                    config.dragOffset.x = e.clientX - moveStart.x;
+                    config.dragOffset.y = e.clientY - moveStart.y;
+                    widgetStage.style.transform = `translate(${config.dragOffset.x}px, ${config.dragOffset.y}px) scale(var(--widget-scale))`;
+                } else if (isResizingWidget) {
+                    const dx = e.clientX - resizeStart.x;
+                    const dy = e.clientY - resizeStart.y;
+                    // Horizontal stretch triggers Deskbar mode; diagonal/vertical scales smoothly
+                    if (dx > 130 && dy < 40 && config.layoutMode !== 'deskbar') {
+                        applyLayoutMode('deskbar');
+                    } else if (dx < -90 && config.layoutMode === 'deskbar') {
+                        applyLayoutMode('full');
+                    }
+                    const delta = (dx + dy) / 380;
+                    const newScale = Math.max(0.6, Math.min(1.35, resizeStart.scale + delta));
+                    document.documentElement.style.setProperty('--widget-scale', newScale.toFixed(2));
+                    scaleSlider.value = Math.round(newScale * 100);
+                    scaleVal.textContent = `${Math.round(newScale * 100)}%`;
+                }
+            });
+
+            window.addEventListener('mouseup', () => {
+                if (isMovingWidget || isResizingWidget) {
+                    saveWidgetPreferences();
+                }
+                isMovingWidget = false;
+                isResizingWidget = false;
+            });
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, config.size, config.size);
+            
+            // Apply smooth scroll inertia
+            if (Math.abs(config.scrollVelocity) > 0.5) {
+                config.simulatedTimeOffset += config.scrollVelocity;
+                config.scrollVelocity *= 0.88; // Friction decay
+            } else {
+                config.scrollVelocity = 0;
+            }
+
+            const realNow = new Date();
+            let now = realNow;
+            if (config.isInteracting || Math.abs(config.simulatedTimeOffset) > 50) {
+                now = new Date(realNow.getTime() + config.simulatedTimeOffset);
+            }
+            
+            const currentSimulatedDateHour = `${config.lat.toFixed(2)}-${config.lng.toFixed(2)}-${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}`;
+            if (weatherData.lastFetchedDateHour !== currentSimulatedDateHour) {
+                clearTimeout(weatherData.debounceTimer);
+                weatherData.debounceTimer = setTimeout(() => {
+                    fetchWeatherDataForDate(config.lat, config.lng, now);
+                }, 500);
+                weatherData.lastFetchedDateHour = currentSimulatedDateHour;
+            }
+
+            const times = SunCalc.getTimes(now, config.lat, config.lng);
+            const pos = SunCalc.getPosition(now, config.lat, config.lng);
+            const moonPos = SunCalc.getMoonPosition(now, config.lat, config.lng);
+            
+            const eclipseState = drawWatchFace(now, times, pos, moonPos);
+            updateUI(now, times, pos, moonPos, eclipseState);
+
+            requestAnimationFrame(render);
+        }
+
+        function getAngleFromEvent(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const x = clientX - rect.left - (rect.width / 2);
+            const y = clientY - rect.top - (rect.height / 2);
+            return Math.atan2(y, x);
+        }
+
+        function jumpToTargetDate(targetDate) {
+            if (!targetDate || isNaN(targetDate.getTime())) return;
+            config.isInteracting = true;
+            config.scrollVelocity = 0;
+            config.simulatedTimeOffset = targetDate.getTime() - Date.now();
+        }
+
+        function initEvents() {
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                config.isInteracting = true;
+                
+                const magnitude = Math.min(Math.abs(e.deltaY), 160);
+                const sign = Math.sign(e.deltaY);
+                const impulse = sign * Math.pow(magnitude, 1.55) * 4.5;
+                config.scrollVelocity += impulse;
+            }, { passive: false });
+
+            function startDrag(e) {
+                e.preventDefault();
+                config.isDragging = true;
+                config.isInteracting = true;
+                config.scrollVelocity = 0;
+                config.lastAngle = getAngleFromEvent(e);
+                canvas.style.cursor = 'grabbing';
+            }
+
+            function doDrag(e) {
+                if (!config.isDragging) return;
+                e.preventDefault();
+                const currentAngle = getAngleFromEvent(e);
+                let angleDiff = currentAngle - config.lastAngle;
+                
+                if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+                if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+                const msPerRadian = (24 * 60 * 60 * 1000) / (2 * Math.PI);
+                config.simulatedTimeOffset += angleDiff * msPerRadian;
+                config.lastAngle = currentAngle;
+            }
+
+            function endDrag() { 
+                config.isDragging = false; 
+                canvas.style.cursor = 'grab';
+            }
+
+            canvas.addEventListener('mousedown', startDrag);
+            window.addEventListener('mousemove', doDrag);
+            window.addEventListener('mouseup', endDrag);
+            canvas.addEventListener('touchstart', startDrag, { passive: false });
+            window.addEventListener('touchmove', doDrag, { passive: false });
+            window.addEventListener('touchend', endDrag);
+
+            // Telemetry Quick-Jump Shortcuts
+            document.getElementById('jump-sunrise').addEventListener('click', () => {
+                const now = new Date(Date.now() + config.simulatedTimeOffset);
+                const times = SunCalc.getTimes(now, config.lat, config.lng);
+                jumpToTargetDate(times.sunrise);
+            });
+
+            document.getElementById('jump-noon').addEventListener('click', () => {
+                const now = new Date(Date.now() + config.simulatedTimeOffset);
+                const times = SunCalc.getTimes(now, config.lat, config.lng);
+                jumpToTargetDate(times.solarNoon);
+            });
+
+            document.getElementById('jump-sunset').addEventListener('click', () => {
+                const now = new Date(Date.now() + config.simulatedTimeOffset);
+                const times = SunCalc.getTimes(now, config.lat, config.lng);
+                jumpToTargetDate(times.sunset);
+            });
+
+            document.getElementById('jump-eclipse').addEventListener('click', () => {
+                const preset = notableEclipses[config.eclipsePresetIndex];
+                config.eclipsePresetIndex = (config.eclipsePresetIndex + 1) % notableEclipses.length;
+                eclipseValEl.textContent = notableEclipses[config.eclipsePresetIndex].label;
+                jumpToTargetDate(new Date(preset.time));
+            });
+
+            datePicker.addEventListener('change', (e) => {
+                if (e.target.value) {
+                    jumpToTargetDate(new Date(e.target.value));
+                }
+            });
+
+            resetTimeBtn.addEventListener('click', () => {
+                config.isInteracting = false;
+                config.simulatedTimeOffset = 0;
+                config.scrollVelocity = 0;
+            });
+
+            const locationText = document.getElementById('location-text');
+            const locationInput = document.getElementById('location-input');
+            const gpsBtn = document.getElementById('gps-btn');
+
+            locationText.addEventListener('click', () => {
+                locationText.style.display = 'none';
+                locationInput.classList.add('active');
+                locationInput.value = '';
+                locationInput.focus();
+            });
+
+            locationInput.addEventListener('blur', () => {
+                locationInput.classList.remove('active');
+                locationText.style.display = 'block';
+            });
+
+            locationInput.addEventListener('keydown', async (e) => {
+                if (e.key === 'Enter' && locationInput.value.trim() !== '') {
+                    const query = locationInput.value.trim();
+                    locationInput.blur();
+                    locationText.textContent = "Searching...";
+                    
+                    try {
+                        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+                        const data = await res.json();
+                        
+                        if (data && data.length > 0) {
+                            config.lat = parseFloat(data[0].lat);
+                            config.lng = parseFloat(data[0].lon);
+                            const parts = data[0].display_name.split(', ');
+                            config.locationName = parts[0] + (parts.length > 1 ? ', ' + parts[parts.length - 1] : '');
+                            locationText.textContent = config.locationName;
+                            weatherData.lastFetchedDateHour = null;
+                            updateWeather(config.lat, config.lng);
+                            saveWidgetPreferences();
+                        } else {
+                            locationText.textContent = "Not found";
+                            setTimeout(() => locationText.textContent = config.locationName, 2000);
+                        }
+                    } catch (err) {
+                        locationText.textContent = "Error";
+                        setTimeout(() => locationText.textContent = config.locationName, 2000);
+                    }
+                } else if (e.key === 'Escape') {
+                    locationInput.blur();
+                }
+            });
+
+            gpsBtn.addEventListener('click', () => {
+                if ("geolocation" in navigator) {
+                    locationText.textContent = "Locating...";
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            config.lat = pos.coords.latitude;
+                            config.lng = pos.coords.longitude;
+                            config.locationName = `${config.lat.toFixed(2)}°, ${config.lng.toFixed(2)}°`;
+                            locationText.textContent = config.locationName;
+                            weatherData.lastFetchedDateHour = null;
+                            updateWeather(config.lat, config.lng);
+                            saveWidgetPreferences();
+                            locationText.style.color = '#38bdf8';
+                            setTimeout(() => locationText.style.color = '', 2000);
+                        }, 
+                        () => {
+                            locationText.textContent = "GPS Denied";
+                            setTimeout(() => locationText.textContent = config.locationName, 2000);
+                        }
+                    );
+                }
+            });
+        }
+
+        window.onload = () => {
+            if (window.location.search.includes('desktop=1')) {
+                document.body.classList.add('native-desktop-app');
+            }
+            setupCanvas();
+            initWeatherParticles();
+            initEvents();
+            initWidgetStudio();
+            loadWidgetPreferences();
+            updateWeather(config.lat, config.lng); // Fetch initial weather
+            render();
+            setTimeout(() => {
+                syncNativeHostSize();
+                syncNativeHostOpacity(false);
+            }, 150);
+        };
+    </script>
+</body>
+</html>
