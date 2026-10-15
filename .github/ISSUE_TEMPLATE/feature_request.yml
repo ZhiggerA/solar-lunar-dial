@@ -1,0 +1,35 @@
+name: ✨ Feature request
+description: Suggest an idea or improvement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: e.g. "I'd like to see moonrise and moonset times because..."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Describe the feature you'd like
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of the widget?
+      options:
+        - Dial / astronomy
+        - Weather
+        - Layouts & appearance
+        - Widget Studio settings
+        - Windows .exe builders
+        - Accessibility
+        - Other
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or extra context
+      description: Mockups, screenshots, or links to similar features elsewhere.
