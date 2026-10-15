@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Report a security vulnerability
+    url: https://github.com/zhiggera/solar-lunar-dial/security/advisories/new
+    about: Please report security issues privately, not as public issues.
+  - name: 🌐 Try the live widget
+    url: https://zhiggera.github.io/solar-lunar-dial/
+    about: Open the latest version in your browser.
