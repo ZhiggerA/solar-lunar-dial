@@ -8,7 +8,7 @@ A glassmorphism desktop widget that shows where the sun and moon are right now: 
 **👉 [Try it in your browser](https://zhiggera.github.io/solar-lunar-dial/)**, no install needed.
 
 <p align="center">
-  <img src="docs/screenshot.png" alt="Solar & Lunar Dial widget showing the 24-hour sun and moon dial, weather card, and sunrise and sunset times" width="420">
+  <img src="Screenshot_Deskbar.png" alt="Solar & Lunar Dial widget showing the 24-hour sun and moon dial, weather card, and sunrise and sunset times" width="420">
 </p>
 
 ---
@@ -97,7 +97,7 @@ Exit the widget from the tray icon, then delete:
 
 ---
 
-## <img src="docs/Screenshot_PureOrb.png" width="22" alt=""> Layouts
+## <img src="Screenshot_PureOrb.png" width="22" alt=""> Layouts
 
 | Layout | Best for |
 | --- | --- |
