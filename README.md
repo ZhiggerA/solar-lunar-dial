@@ -97,7 +97,7 @@ Exit the widget from the tray icon, then delete:
 
 ---
 
-## <img src="docs/orb.png" width="22" alt=""> Layouts
+## <img src="docs/Screenshot_PureOrb.png" width="22" alt=""> Layouts
 
 | Layout | Best for |
 | --- | --- |
