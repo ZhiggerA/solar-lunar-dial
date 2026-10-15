@@ -1,0 +1,64 @@
+# Security Policy
+
+## Supported versions
+
+Only the latest version on the `main` branch receives fixes.
+
+| Version | Supported |
+| ------- | --------- |
+| `main` (latest) | ✅ |
+| Older commits / forks | ❌ |
+
+## Reporting a vulnerability
+
+**Please do not open a public issue for security problems.**
+
+Report privately using GitHub's [private vulnerability reporting](https://github.com/zhiggera/solar-lunar-dial/security/advisories/new) (Security tab → "Report a vulnerability").
+
+Please include:
+
+- A description of the issue and its potential impact
+- Steps to reproduce
+- Browser / Windows version, if relevant
+
+You can expect an initial response within 7 days. Once confirmed, a fix will be prioritized and you'll be credited in the release notes unless you prefer otherwise.
+
+## What the Windows .exe builders do
+
+The "Build Windows 11 .EXE" options generate scripts that run on your computer. You should always review a script before running it. Here's exactly what they do:
+
+**Option 1 (`Install-SolarLunarWidget.bat`) and Option 2 (PowerShell command):**
+
+1. Run PowerShell with `-ExecutionPolicy Bypass` for that session only (no system settings are changed).
+2. Stop any running `SolarLunarWidget.exe` process.
+3. Create `%LOCALAPPDATA%\SolarLunarWidget\` and write the widget HTML there.
+4. Download the official `Microsoft.Web.WebView2` package from `nuget.org` (first run only).
+5. Generate an icon and compile a small C# program using the .NET Framework compiler (`csc.exe`) that ships with Windows.
+6. Copy `SolarLunarWidget.exe` to your Desktop and launch it.
+
+No administrator rights are requested, nothing is installed system-wide, and no registry keys are written.
+
+**Option 3 (Electron builder):** requires Node.js and runs `npm install electron @electron/packager`, then packages an `.exe` into a folder on your Desktop.
+
+**To uninstall:** close the widget from its tray icon, then delete `%LOCALAPPDATA%\SolarLunarWidget\` (or `SolarLunarOverlay\`) and the `.exe` on your Desktop.
+
+Because the compiled `.exe` is unsigned, Windows SmartScreen or antivirus software may warn about it. This is expected for unsigned, locally compiled programs.
+
+## Privacy and network requests
+
+The widget makes these requests at runtime:
+
+| Service | Data sent | Purpose |
+| ------- | --------- | ------- |
+| Open-Meteo | Latitude/longitude, date | Weather |
+| Nominatim (OpenStreetMap) | Your city search text | Geocoding |
+| Browser geolocation | Only if you click the GPS icon | Your coordinates |
+| cdn.tailwindcss.com, cdnjs, Google Fonts | Standard page requests | Styling, SunCalc, fonts |
+
+Settings (location, layout, opacity) are saved only in your browser's `localStorage`. Nothing is sent to the author.
+
+## Scope
+
+In scope: the code in this repository, including the generated builder scripts.
+
+Out of scope: vulnerabilities in third-party services or libraries listed above (please report those to their maintainers).
