@@ -1,0 +1,65 @@
+name: 🐞 Bug report
+description: Something isn't working as expected
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to report a bug! Please fill in as much as you can.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Switch to Deskbar layout
+        2. Enable Ghost Chrome
+        3. Move mouse away from the widget
+        4. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Where are you running the widget?
+      options:
+        - Browser (index.html)
+        - Desktop .exe (Option 1, WebView2 .bat)
+        - Desktop .exe (Option 2, PowerShell)
+        - Desktop .exe (Option 3, Electron)
+    validations:
+      required: true
+  - type: dropdown
+    id: layout
+    attributes:
+      label: Layout
+      options:
+        - Full
+        - Deskbar
+        - Compact
+        - Pure Orb
+        - Doesn't matter / all layouts
+  - type: input
+    id: browser-os
+    attributes:
+      label: Browser and OS
+      placeholder: e.g. Edge 130 on Windows 11 23H2
+    validations:
+      required: true
+  - type: input
+    id: location
+    attributes:
+      label: Location set in the widget (optional)
+      description: Helps with sunrise/sunset or weather bugs. A city name is enough.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console errors or screenshots
+      description: Press F12 → Console in your browser. For builder issues, paste the PowerShell output.
+      render: shell
